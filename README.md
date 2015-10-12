@@ -10,7 +10,7 @@ Navigate to the folder you saved your HTML file in and type `bloom index.html`. 
 
 ###Styles
 
-Take advantage of Ullysses' styles marketplace. Any of the downloaded HTML styles from [http://styles.ulyssesapp.com/](http://styles.ulyssesapp.com/) will still be there after you bloom, provided you choose the style when exporting HTML and use the Full Page option.
+Take advantage of Ullysses' styles marketplace. Any of the downloaded HTML styles from [http://styles.ulyssesapp.com/](http://styles.ulyssesapp.com/tagged/HTML) will still be there after you bloom, provided you chose the style when exporting HTML and used the Full Page option.
 
 ###Cover images
 
