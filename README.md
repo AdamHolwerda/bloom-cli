@@ -23,4 +23,8 @@ In Ulysses, just add the `%` symbol in the title of any of your sheets. These fi
 
 ##Now what?
 
-Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the new files into. Voila: a website made from your Ulysses stack.
+I don't know, do it again when you want to update it?
+
+Oh, right. The website part.
+
+Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `indexed-bloom` into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.
