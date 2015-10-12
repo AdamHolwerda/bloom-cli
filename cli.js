@@ -129,6 +129,9 @@ function runProgram(){
 
 	    if (coverImageExists) {
 
+	    	fs.mkdir('./'+outDirName+'/images');
+	    	fs.createReadStream('images/cover.jpg').pipe(fs.createWriteStream(outDirName+'/images/cover.jpg'));
+
 	        coverImage = "<img src = 'images/cover.jpg' />";
 
 	    } else {
@@ -204,6 +207,7 @@ function runProgram(){
 	        }
 
     }
+
 
     fs.writeFile(outDirName + '/index.html', (global.headerString + indexStyles + coverImage + global.projectTitle + includeInIndex + indexStr +"</ul></body></html>"), function(err) {
      
