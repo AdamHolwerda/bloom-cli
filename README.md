@@ -1,6 +1,6 @@
 #bloom-cli
 
-A command line utility to create a multipage static website from a Ulysses export
+A command line utility to create a multipage static website from a [Ulysses](http://ulyssesapp.com) HTML export
 
 `npm install bloom-cli -g`
 
