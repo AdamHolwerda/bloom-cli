@@ -1,0 +1,20 @@
+{
+  "name": "bloom-cli",
+  "version": "0.0.3",
+  "description": "Export a group of sheets from a Ulysses file and make a website out of it!",
+  "scripts": {
+    "test": "gulp"
+  },
+  "author": "Adam Holwerda",
+  "license": "ISC",
+  "preferGlobal": true,
+  "bin": {
+    "bloom": "cli.js"
+  },
+  "dependencies": {
+    "concat-stream": "^1.4.10",
+    "inquirer": "^0.10.1",
+    "open": "0.0.5",
+    "q": "~1.0.1"
+  }
+}
