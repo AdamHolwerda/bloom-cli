@@ -27,4 +27,4 @@ I don't know, do it again when you want to update it?
 
 Oh, right. The website part.
 
-Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `indexed-bloom` into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.
+Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `indexed-bloomed` files into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.
