@@ -18,7 +18,7 @@ Take advantage of Ullysses' styles marketplace. Any of the downloaded HTML style
 
 ###Cover images
 
-If you have a folder called `images` in the same location as your export location (you should make one maybe) and then inside that a file called `cover.jpg` the image will show up on your index page after you bloom.
+If you have a folder called `images` in the same location as your export location (you should make one maybe) and then inside that a file called `cover.jpg` the image will show up on your index page after you bloom. Va va voom.
 
 ###Exclude some sheets
 
