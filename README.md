@@ -2,7 +2,7 @@
 
 A command line utility to create a multipage static website from a [Ulysses](http://ulyssesapp.com) HTML export
 
-![](http://i.imgur.com/qA3d2WD.png?1) ![](http://i.imgur.com/wo3xjXO.png?1)
+![](http://i.imgur.com/fIQN10x.png)
 
 `npm install bloom-cli -g`
 
