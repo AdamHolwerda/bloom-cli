@@ -6,7 +6,7 @@ A command line utility to create a multipage static website from a [Ulysses](htt
 
 ##Usage
 
-`npm install bloom-cli -g` will install `bloom-cli` globally, letting you `bloom` from wherever you are.
+Open a terminal and type `npm install bloom-cli -g` to install `bloom-cli` globally, letting you `bloom` from wherever you are.
 
 When you're exporting HTML from Ulysses, choose "Full Page" format. Save it somewhere you can navigate to in the terminal / command prompt.
 
@@ -26,7 +26,7 @@ In Ulysses, just add the `%` symbol in the title of any of your sheets. These fi
 
 ###Show words? Or nah
 
-One of the questions the program will ask you is if you'd like to show words next to the links on the index page. Say yeah if yean and nah if nah
+One of the questions the program will ask you is if you'd like to show words next to the links on the index page. Say y if yeah, default is nah.
 
 
 ##Now what?
@@ -35,4 +35,5 @@ I don't know, do it again when you want to update it?
 
 Oh, right. The website part.
 
-Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `indexed-bloomed` into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.
+Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `indexe-bloomed` into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.
+

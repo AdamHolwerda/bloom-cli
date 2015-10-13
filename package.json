@@ -1,9 +1,9 @@
 {
   "name": "bloom-cli",
-  "version": "0.0.5",
-  "description": "Export a group of sheets from a Ulysses file and make a website out of it!",
+  "version": "0.0.6",
+  "description": "Export a group of sheets from Ulysses and make a website out of them!",
   "scripts": {
-    "test": "gulp"
+    "test": ""
   },
   "repository": "AdamHolwerda/bloom-cli",
   "author": "Adam Holwerda",
