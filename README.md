@@ -14,11 +14,11 @@ Navigate (via terminal / prompt) to the folder you saved your HTML file in and t
 
 ###Styles
 
-Take advantage of Ullysses' styles marketplace. Any of the downloaded HTML styles from [http://styles.ulyssesapp.com/](http://styles.ulyssesapp.com/tagged/HTML) will still be there after you bloom, provided you chose the style when exporting HTML and used the Full Page option.
+Take advantage of Ullysses' styles marketplace. Any of the downloaded HTML styles from [http://styles.ulyssesapp.com/](http://styles.ulyssesapp.com/tagged/HTML) will be integrated into your bloomed project, provided you chose a style when exporting HTML and used the Full Page option.
 
 ###Cover images
 
-If you have a folder called `images` in the same location as your export location (you should make one maybe) and then inside that a file called `cover.jpg` the image will show up on your index page after you bloom. Va va voom.
+If you have a folder called `images` in the same location as your export location (you should make one maybe) and then inside that a file called `cover.jpg` the image be sucked into your project and show up on your index page after you bloom. Va va voom.
 
 ###Exclude some sheets
 
