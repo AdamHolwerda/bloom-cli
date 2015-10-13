@@ -4,6 +4,8 @@ A command line utility to create a multipage static website from a [Ulysses](htt
 
 ![](http://i.imgur.com/fIQN10x.png)
 
+##Usage
+
 `npm install bloom-cli -g`
 
 When you're exporting HTML from Ulysses, choose "Full Page" format.
