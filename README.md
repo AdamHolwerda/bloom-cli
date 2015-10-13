@@ -8,9 +8,9 @@ A command line utility to create a multipage static website from a [Ulysses](htt
 
 `npm install bloom-cli -g`
 
-When you're exporting HTML from Ulysses, choose "Full Page" format.
+When you're exporting HTML from Ulysses, choose "Full Page" format. Save it somewhere you can navigate to in the terminal / command prompt.
 
-Navigate to the folder you saved your HTML file in and type `bloom index.html`. Answer the questions and an index page will pop up with your linked files.
+Navigate (via terminal / prompt) to the folder you saved your HTML file in and type `bloom index.html`. Answer the questions (like "What is the title of this thing", etc.) and an index page will pop up with your linked files.
 
 ###Styles
 
