@@ -10,7 +10,7 @@ A command line utility to create a multipage static website from a [Ulysses](htt
 
 When you're exporting HTML from Ulysses, choose "Full Page" format. Save it somewhere you can navigate to in the terminal / command prompt.
 
-Navigate (via terminal / prompt) to the folder you saved your HTML file in and type `bloom index.html`. Answer the questions (like "What is the title of this thing", etc.) and an index page will pop up with your linked files.
+Navigate (via terminal / prompt) to the folder you saved your HTML file in and type `bloom index.html`. Answer the questions (like "What is the title of this thing", etc.) and an index page will pop up in a browser with your linked files all ready for you to click.
 
 ###Styles
 
@@ -18,7 +18,7 @@ Take advantage of Ullysses' styles marketplace. Any of the downloaded HTML style
 
 ###Cover images
 
-If you have a folder called `images` in the same location as your export location (you should make one maybe) and then inside that a file called `cover.jpg` the image be sucked into your project and show up on your index page after you bloom. Va va voom.
+If you have a folder called `images` in the same location as your export location (you should make one maybe) and then inside that a file called `cover.jpg` the image will be sucked into your project and show up on your index page after you bloom. Va va voom.
 
 ###Exclude some sheets
 
