@@ -22,7 +22,7 @@ If you have a folder called `images` in the same location as your export locatio
 
 ###Exclude some sheets
 
-In Ulysses, just add the `%` symbol in the title of any of your sheets. These files will be created but excluded from the index file, so they won't show on the list. I chose a `%` symbol because it means "unfinished" to me. If you're 99% done with something you're still not done with it.
+In Ulysses, just add the `%` symbol in the title of any of your sheets. These files will be created but excluded from the index file, so they won't show on the list. I chose a `%` symbol because it means "unfinished" to me.
 
 ###Show words? Or nah
 
