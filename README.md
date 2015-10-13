@@ -22,7 +22,7 @@ If you have a folder called `images` in the same location as your export locatio
 
 In Ulysses, just add the `%` symbol in the title of any of your sheets. These files will be created but excluded from the index file, so they won't show on the list. I chose a `%` symbol because it means "unfinished" to me. If you're 99% done with something you're still not done with it.
 
-##Show words? Or nah
+###Show words? Or nah
 
 One of the questions the program will ask you is if you'd like to show words next to the links on the index page. Say yeah if yean and nah if nah
 
