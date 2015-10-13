@@ -6,7 +6,7 @@ A command line utility to create a multipage static website from a [Ulysses](htt
 
 ##Usage
 
-`npm install bloom-cli -g`
+`npm install bloom-cli -g` will install `bloom-cli` globally, letting you `bloom` from wherever you are.
 
 When you're exporting HTML from Ulysses, choose "Full Page" format. Save it somewhere you can navigate to in the terminal / command prompt.
 
