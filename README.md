@@ -14,11 +14,11 @@ Navigate (via terminal / prompt) to the folder you saved your HTML file in and t
 
 ###Styles
 
-Take advantage of Ullysses' styles marketplace. Any of the downloaded HTML styles from [http://styles.ulyssesapp.com/](http://styles.ulyssesapp.com/tagged/HTML) will be integrated into your bloomed project, provided you chose a style when exporting HTML and used the Full Page option.
+Take advantage of Ulysses' styles marketplace. Any of the downloaded HTML styles from [http://styles.ulyssesapp.com/](http://styles.ulyssesapp.com/tagged/HTML) will be integrated into your bloomed project, provided you chose a style when exporting HTML and used the Full Page option.
 
 ###Cover images
 
-If you have a folder called `images` in the same location as your export location (you should make one maybe) and then inside that a file called `cover.jpg` the image will be sucked into your project and show up on your index page after you bloom. Va va voom.
+If you have a folder called `images` in the same location as your export location (make one) and then inside that a file called `cover.jpg` the image will be sucked into your project and show up on your index page after you bloom. Va va voom.
 
 ###Exclude some sheets
 
@@ -28,12 +28,10 @@ In Ulysses, just add the `%` symbol in the title of any of your sheets. These fi
 
 One of the questions the program will ask you is if you'd like to show words next to the links on the index page. Say y if yeah, default is nah.
 
+##FTP Upload included
 
-##Now what?
+Now bloom-cli will ask you if you want your project uploaded, and will ask you for FTP credentials.
 
-I don't know, do it again when you want to update it?
+##I don't want to upload through the CLI
 
-Oh, right. The website part.
-
-Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `indexe-bloomed` into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.
-
+Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `index-bloomed` into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.

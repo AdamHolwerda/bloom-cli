@@ -14,8 +14,11 @@
   },
   "dependencies": {
     "concat-stream": "^1.4.10",
+    "htmlencode": "0.0.4",
     "inquirer": "^0.10.1",
     "open": "0.0.5",
-    "q": "~1.0.1"
+    "q": "~1.0.1",
+    "vinyl-fs": "^2.4.3",
+    "vinyl-ftp": "^0.5.0"
   }
 }

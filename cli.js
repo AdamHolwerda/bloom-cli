@@ -1,17 +1,20 @@
 #! /usr/bin/env node
 
-
 global.headerString = "";
 global.projectTitle = "";
 global.showWords = false;
+global.alphabetical = false;
+global.ftp = false
+global.hostname = "";
+global.username = "";
+global.password = "";
+global.remotePath = "";
 
 var userArgs = process.argv.slice(2);
 var fileToBloomFrom = userArgs[0];
 
 if (!fileToBloomFrom){
-	console.log('You must supply a file location to bloom from.')
-
-	return false;
+	fileToBloomFrom = 'index.html'; //assume it's index.html
 }
 
 var fs = require('fs'); // get fileSystem
@@ -19,6 +22,9 @@ var concatStream = require('concat-stream'); //put a streaming chunked file into
 var q = require('q'); //so we can defer
 var inquirer = require('inquirer'); //so we can ask questions
 var open = require('open');//so we can open files
+var htmlEncode = require('htmlencode').htmlEncode//so we can make sure our links work
+var vinylFs = require( 'vinyl-fs' );
+var vinylFtp = require('vinyl-ftp');
 
 var inputFile = fs.createReadStream(fileToBloomFrom);
 var headerFileExists = fs.existsSync(__dirname+'/header.html');
@@ -30,7 +36,6 @@ if (headerFileExists){
 
 var cssFileExists = fs.existsSync('css/style.css');
 var cssFile;
-
 
 if (cssFileExists){
 	cssFile = fs.createReadStream('css/style.css');
@@ -48,14 +53,26 @@ inquirer.prompt([
 	{
 		"name":"title",
 		"message":"What's the title of your project?"
-	}, 
+	},
 	{
 		"type":"confirm",
 		"name":"words",
 		"default":false,
 		"message":"Show word counts next to index links?"
-
-	}], function(answers){
+	},
+	{
+		"type":"confirm",
+		"name": "alphabetical",
+		"default":false,
+		"message":"Alphebetize the links?"
+	},
+	{
+		"type":"confirm",
+		"name":"ftp",
+		"default":false,
+		"message": "Bloom can upload your files for you, if you provide FTP details. Yeah?"
+	}
+], function(answers){
 
 		global.projectTitle = "<h1>"+answers.title+"</h1>";
 
@@ -67,10 +84,44 @@ inquirer.prompt([
 
 		}
 
+		if (answers.alphabetical){
+
+			global.alphabetical = true;
+
+		}
+
+		if (answers.ftp){
+
+			global.ftp = true;
+
+			inquirer.prompt([{
+				"name":"hostname",
+				"message": "Enter your hostname (exclude ftp:// or www prefixes)",
+			},
+			{"name":"username", "message" :"Enter your username for that host"},
+			{"name":"password", "type":"password", "message": "Enter your password for that host"},
+			{"name":"remotePath", "message": "Enter your remote path (directory you want this to go to)"},
+
+		], function(moreAnswers){
+
+			global.hostname = moreAnswers.hostname;
+			global.username = moreAnswers.username;
+			global.password = moreAnswers.password;
+			global.remotePath = moreAnswers.remotePath;
+
+
 		runProgram();
 
-});
+		});
 
+
+	} else {
+
+				runProgram();
+
+	}
+
+});
 
 function makeFileAString(file) {
 
@@ -146,12 +197,13 @@ function runProgram(){
 
 	    var indexStr = commentDate + '<ul>';
 
+			var titleArray = [];
+
 	    for (var i = 0; i < array.length; i++) {
 
 	        var title = array[i].split('</h1>')[0];
 
 	        var hideThis = false;
-
 
 	        if (title.indexOf('%') > -1){ hideThis = true; }
 
@@ -163,11 +215,11 @@ function runProgram(){
 
 	            if (title !== 'index' && title !== '' && !hideThis) {
 
-	                indexStr = indexStr + "<li><a href = '" + webTitle + ".html'>" + title + "</a></li>";
+	                indexStr = indexStr + "<li><a href = '" + htmlEncode(webTitle) + ".html'>" + title + "</a></li>";
 
 	            }
 
-	            var backButton = "<a href = 'index.html'>back</a>";
+	            var backButton = "<a class = 'button-back' href = 'index.html'>back</a>";
 
 	            var fileContents;
 
@@ -179,17 +231,11 @@ function runProgram(){
 
 	            var wordCount = fileContents.split(' ').length;
 
-	            if (global.showWords == true && title !==  '') {
-
-	                indexStr = indexStr.replace(new RegExp(title), title + ' (' + wordCount + ' words)');
-
-	            }
-
-	            // after all our transforms on the text have been done, we can make our files, except for the index file which we have to append to the thing index page (if there is one)
+	            //spit out the file in this next part
 
 	            if (title !== 'index') {
 
-	                fs.writeFile(outDirName + '/' + webTitle + '.html', global.headerString+fileContents, function(err) {
+	                fs.writeFile(outDirName + '/' + webTitle + '.html', global.headerString+fileContents, function(err) { // this is htmlencoding automatically so we don't do it here
 
 	                	if (err){
 
@@ -198,28 +244,84 @@ function runProgram(){
 
 	                });
 
-	            } else{
+	            } else {
 
 	                includeInIndex = fileContents.replace('<h1>index</h1>', '');
 
-	            }
+	            } //after making file, gather stuff for index file
+
+							if (global.showWords == true && title !==  '') {
+
+									title =  title + ' (' + wordCount + ' words)';
+
+									indexStr = indexStr.replace(new RegExp(title), title + ' (' + wordCount + ' words)');
+
+							}
+
+							titleArray.push(title);
 
 	        }
 
     }
 
 
+							if (global.alphabetical){
+								titleArray.sort();
+
+								indexStr = commentDate + '<ul>'; //start over with this string
+							 	titleArray.map(function(one){
+
+								  if (one.indexOf('%') > -1){ return false }
+									if (one === "index"){return false;}
+
+									var nonWebTitle = one.split(' (');
+									var webTitle = one.toLowerCase().replace(new RegExp(' ', 'g'), '_')
+									webTitle = webTitle.split('_(');
+
+
+									if (webTitle.length > 1) {
+											indexStr += "<li><a href = '" + htmlEncode(webTitle[0]) + ".html'>" + nonWebTitle[0] + "</a> ("+nonWebTitle[1]+"</li>";
+									} else {
+										indexStr += "<li><a href = '" + htmlEncode(webTitle[0]) + ".html'>" + nonWebTitle[0] + "</a></li>";
+									}
+
+
+								});
+
+							}
+
+
+
     fs.writeFile(outDirName + '/index.html', (global.headerString + indexStyles + coverImage + global.projectTitle + includeInIndex + indexStr +"</ul></body></html>"), function(err) {
-     
+
                 	if (err){
-                		
+
                     console.log('error3', err);
                 	}
 
-                	//launch the static site in the user's browser
-    				open(outDirName+'/index.html');
+            //launch the static site in the user's browser
 
+						if (global.ftp){
+
+							var conn = new vinylFtp({
+									host: global.hostname,
+									user:     global.username,
+									password: global.password,
+									parallel: 10,
+									log: function(item){
+										console.log(item);
+									}
+								});
+
+							vinylFs.src( [ outDirName+'/**' ], { buffer: false } )
+									.pipe( conn.dest( global.remotePath ) );
+
+						}
+
+					open(outDirName+'/index.html');
     });
+
+
 
 
 });
