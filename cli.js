@@ -100,7 +100,7 @@ inquirer.prompt([
 			},
 			{"name":"username", "message" :"Enter your username for that host"},
 			{"name":"password", "type":"password", "message": "Enter your password for that host"},
-			{"name":"remotePath", "message": "Enter your remote path (directory you want this to go to)"},
+			{"name":"remotePath", "message": "Type a remote directory you'd like to bloom into (ex: html/project)"},
 
 		], function(moreAnswers){
 
