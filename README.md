@@ -28,10 +28,10 @@ In Ulysses, just add the `%` symbol in the title of any of your sheets. These fi
 
 One of the questions the program will ask you is if you'd like to show words next to the links on the index page. Say y if yeah, default is nah.
 
-##FTP Upload included
+###FTP Upload included
 
 Now bloom-cli will ask you if you want your project uploaded, and will ask you for FTP credentials.
 
-##I don't want to upload through the CLI
+###I don't want to upload through the CLI
 
 Open up FileZilla (or whatever FTP program people are using these days) and make a folder on your server to copy the files from `index-bloomed` into. Then navigate there in your browser. Voila: a website made from your Ulysses stack.
