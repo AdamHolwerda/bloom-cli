@@ -78,7 +78,7 @@ inquirer.prompt([{
     "name": "ftp",
     "default": false,
     "message": "Bloom can upload your files for you, if you provide FTP details. Yeah?"
-}], function(answers) {
+}], function (answers) {
 
     global.projectTitle = "<h1>" + answers.title + "</h1>";
     global.projectSubtitle = "<h3>" + answers.subtitle + "</h3>";
@@ -108,21 +108,21 @@ inquirer.prompt([{
         global.ftp = true;
 
         inquirer.prompt([{
-                "name": "hostname",
-                "message": "Enter your hostname (exclude ftp:// or www prefixes)",
-            }, {
-                "name": "username",
-                "message": "Enter your username for that host"
-            }, {
-                "name": "password",
-                "type": "password",
-                "message": "Enter your password for that host"
-            }, {
-                "name": "remotePath",
-                "message": "Type a remote directory you'd like to bloom into (ex: html/project)"
-            },
+            "name": "hostname",
+            "message": "Enter your hostname (exclude ftp:// or www prefixes)",
+        }, {
+            "name": "username",
+            "message": "Enter your username for that host"
+        }, {
+            "name": "password",
+            "type": "password",
+            "message": "Enter your password for that host"
+        }, {
+            "name": "remotePath",
+            "message": "Type a remote directory you'd like to bloom into (ex: html/project)"
+        },
 
-        ], function(moreAnswers) {
+        ], function (moreAnswers) {
 
             global.hostname = moreAnswers.hostname;
             global.username = moreAnswers.username;
@@ -146,7 +146,7 @@ function makeFileAString(file) {
 
     var deferred = q.defer(); // make a new deferred object so we can chain some shit
 
-    file.pipe(concatStream(function(data) {
+    file.pipe(concatStream(function (data) {
 
         deferred.resolve(data.toString()); //resolve the deferred object and make it fill with the data
 
@@ -167,7 +167,7 @@ if (!outDir) {
 if (headerFileExists) {
 
     makeFileAString(headerFile)
-        .then(function(data) {
+        .then(function (data) {
 
             global.headerString = data;
         });
@@ -177,9 +177,9 @@ if (headerFileExists) {
 }
 
 if (cssFileExists) {
-    makeFileAString(cssFile).then(function(data) {
+    makeFileAString(cssFile).then(function (data) {
 
-        fs.writeFile(outDirName + '/style.css', data, function(err) {
+        fs.writeFile(outDirName + '/style.css', data, function (err) {
             if (err) {
                 console.log('error', err);
             }
@@ -190,10 +190,10 @@ if (cssFileExists) {
 
 function runProgram() {
 
-    makeFileAString(inputFile).then(function(data) {
+    makeFileAString(inputFile).then(function (data) {
 
         var splitter = '<h1>'; // we could have this be a prompted answer
-        var array = data.split(splitter);
+        var textArray = data.split(splitter);
 
         var includeInIndex = "";
 
@@ -218,126 +218,128 @@ function runProgram() {
 
         var titleArray = [];
 
-        for (var i = 0; i < array.length; i++) {
+        console.log(textArray[26])
+
+        for (var i = 0; i < textArray.length; i++) {
+
+            console.log(i, textArray.length);
 
             var next = i + 1;
+            var last = i - 1;
 
-            var title = array[i].split('</h1>')[0];
-            if (title == '') {
-                title = 'untitled'
-            };
-
-            var nextTitle = array[next].split('</h1>')[0];
-
-            if (nextTitle == '') {
-                nextTitle = 'untitled'
-            };
-
-            if (nextTitle == 'index') {
-                title = 'pre'
-            }
-
+            var title = i > 0 ? textArray[i].split('</h1>')[0] : "index";
             var hideThis = false;
+            var nextTitle = next < textArray.length ? textArray[next].split('</h1>')[0] : "index";
+            var lastTitle = last > 0 ? textArray[last].split('</h1>')[0] : "";
 
-            if (i !== 0 && nextTitle !== 'index') {
 
-                if (title.indexOf('%') > -1) {
-                    hideThis = true;
-                }
+            if (title.indexOf('%') > -1) {
+                hideThis = true;
+            }
 
-                // fix where first one breaks
+            // fix where first one breaks
 
-                title = striptags(title); //strip tags
-                
-                var webTitle = title !== 'untitled' ? title.toLowerCase().replace(new RegExp(' ', 'g'), '_') : Math.random();
-                webTitle = webTitle.replace(new RegExp('#', 'g'), '');
-                webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
+            title = striptags(title); //strip tags
+            lastTitle = striptags(lastTitle);
+            nextTitle = striptags(nextTitle);
 
-                console.log('webTitle', htmlEncode(webTitle));
+            var webTitle = title.toLowerCase().replace(new RegExp(' ', 'g'), '_');
+            webTitle = webTitle.replace(new RegExp('#', 'g'), '');
+            webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
+            webTitle = htmlEncode(webTitle);
 
-                var nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '_');
-                nextWebTitle = nextWebTitle.replace(new RegExp('#', 'g'), '');
-                nextWebTitle = nextWebTitle.replace(new RegExp('\\.', 'g'), '-');
+            var lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '_');
+            lastWebTitle = lastWebTitle.replace(new RegExp('#', 'g'), '');
+            lastWebTitle = lastWebTitle.replace(new RegExp('\\.', 'g'), '-');
+            lastWebTitle = htmlEncode(lastWebTitle);
 
-                //console.log('nextWebTitle', htmlEncode(nextWebTitle));
+            var nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '_');
+            nextWebTitle = nextWebTitle.replace(new RegExp('#', 'g'), '');
+            nextWebTitle = nextWebTitle.replace(new RegExp('\\.', 'g'), '-');
+            nextWebTitle = htmlEncode(nextWebTitle);
 
-                if (title !== 'index' && title !== '') {
+            console.log(webTitle);
 
-                    indexStr = hideThis ? indextStr : indexStr + "<li><a href = '" + htmlEncode(webTitle) + ".html'>" + title + "</a></li>";
+            if (title !== 'index' && title !== '') {
 
-                }
-
-                var backButton = title == "index" ? "" : "<a class = 'button-back' href = 'index.html'>back</a>";
-                var nextButton = title == 'index' && nextWebTitle.indexOf('%') > -1 ? "" : "<br><br><a class = 'button-next' href = '" + htmlEncode(nextWebTitle) + ".html'>next</a>";
-
-                var fileContents;
-
-                fileContents = backButton + splitter + array[i] + nextButton;
-
-                var wordCount = fileContents.split(' ').length;
-
-                //spit out the file in this next part
-
-                if (title !== 'index' && !hideThis) {
-
-                    fs.writeFile(outDirName + '/' + htmlEncode(webTitle) + '.html', global.headerString + fileContents, function(err) { // this is htmlencoding automatically so we don't do it here
-
-                        if (err) {
-
-                            console.log('error2', err);
-                        }
-
-                    });
-
-                } else {
-
-                    includeInIndex = fileContents.replace('<h1>index</h1>', '');
-
-                } //after making file, gather stuff for index file
-
-                if (global.showWords == true && title !== '') {
-
-                    title = title + ' (' + wordCount + ' words)';
-
-                    indexStr = indexStr.replace(new RegExp(title), title + ' (' + wordCount + ' words)');
-
-                }
-
-                titleArray.push(title);
+                indexStr = hideThis ? indextStr : indexStr + "<li><a href = '" + webTitle + ".html'>" + title + "</a></li>";
 
             }
+
+            var backButtonMarkup = global.sequentialLinks ? "<a class = 'button-back' href = '" + lastWebTitle + ".html'>back</a>" : "<a class = 'button-back' href = 'index.html'>back</a>";
+            var nextButtonMarkup = global.sequentialLinks ? "<br><br><a class = 'button-next' href = '" + nextWebTitle + ".html'>next</a>" : "<br><br><a class = 'button-next' href = 'index.html'>back</a>";
+
+            var backButton = title == "index" ? "" : backButtonMarkup;
+            var nextButton = title == 'index' && nextWebTitle.indexOf('%') > -1 ? "" : nextButtonMarkup;
+
+            var fileContents;
+
+            fileContents = backButton + splitter + textArray[i] + nextButton;
+
+            var wordCount = fileContents.split(' ').length;
+
+            //spit out the file in this next part
+
+            if (title !== 'index' && !hideThis) {
+
+                fs.writeFile(outDirName + '/' + webTitle + '.html', global.headerString + fileContents, function (err) { // this is htmlencoding automatically so we don't do it here
+
+                    if (err) {
+
+                        console.log('error2', err);
+                    }
+
+                });
+
+            } else {
+
+                includeInIndex = fileContents.replace('<h1>index</h1>', '');
+
+            } //after making file, gather stuff for index file
+
+            if (global.showWords == true && title !== '') {
+
+                title = title + ' (' + wordCount + ' words)';
+
+                indexStr = indexStr.replace(new RegExp(title), title + ' (' + wordCount + ' words)');
+
+            }
+
+            titleArray.push(title);
 
         }
 
+        console.log(titleArray);
 
         if (global.alphabetical) {
             titleArray.sort();
-
-            indexStr = commentDate + '<ul>'; //start over with this string
-            titleArray.map(function(one) {
-
-                if (one.indexOf('%') > -1) {
-                    return false
-                }
-                if (one === "index") {
-                    return false;
-                }
-
-                var nonWebTitle = one.split(' (');
-                var webTitleTwo = one.toLowerCase().replace(new RegExp(' ', 'g'), '_')
-                webTitleTwo = webTitleTwo.split('_(');
-
-                if (webTitleTwo.length > 1 && !hideThis) {
-                    indexStr += "<li><a href = '" + htmlEncode(webTitleTwo[0]) + ".html'>" + nonWebTitle[0] + "</a> (" + nonWebTitle[1] + "</li>";
-                } else {
-                    indexStr += "<li><a href = '" + htmlEncode(webTitleTwo[0]) + ".html'>" + nonWebTitle[0] + "</a></li>";
-                }
-
-            });
-
         }
 
-        fs.writeFile(outDirName + '/index.html', (global.headerString + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + "</ul></body></html>"), function(err) {
+        indexStr = commentDate + '<ul>'; //start over with this string
+        titleArray.map(function (one) {
+
+            if (one.indexOf('%') > -1) {
+                return '';
+            }
+
+            if (one === "index") {
+                return '';
+            }
+
+            var nonWebTitle = one.split(' (');
+            var webTitleTwo = one.toLowerCase().replace(new RegExp(' ', 'g'), '_')
+            webTitleTwo = webTitleTwo.split('_(');
+
+            if (webTitleTwo.length > 1 && !hideThis) {
+                indexStr += "<li><a href = '" + htmlEncode(webTitleTwo[0]) + ".html'>" + nonWebTitle[0] + "</a> (" + nonWebTitle[1] + "</li>";
+            } else {
+                indexStr += "<li><a href = '" + htmlEncode(webTitleTwo[0]) + ".html'>" + nonWebTitle[0] + "</a></li>";
+            }
+
+        });
+
+
+        fs.writeFile(outDirName + '/index.html', (global.headerString + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + "</ul></body></html>"), function (err) {
 
             if (err) {
 
@@ -353,14 +355,14 @@ function runProgram() {
                     user: global.username,
                     password: global.password,
                     parallel: 10,
-                    log: function(item) {
+                    log: function (item) {
                         console.log(item);
                     }
                 });
 
                 vinylFs.src([outDirName + '/**'], {
-                        buffer: false
-                    })
+                    buffer: false
+                })
                     .pipe(conn.dest(global.remotePath));
 
             }
