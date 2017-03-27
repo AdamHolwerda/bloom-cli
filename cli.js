@@ -217,12 +217,9 @@ function runProgram() {
         var indexStr = commentDate + '<ul>';
 
         var titleArray = [];
-
-        console.log(textArray[26])
+        var webTitleArray = [];
 
         for (var i = 0; i < textArray.length; i++) {
-
-            console.log(i, textArray.length);
 
             var next = i + 1;
             var last = i - 1;
@@ -237,8 +234,6 @@ function runProgram() {
                 hideThis = true;
             }
 
-            // fix where first one breaks
-
             title = striptags(title); //strip tags
             lastTitle = striptags(lastTitle);
             nextTitle = striptags(nextTitle);
@@ -246,20 +241,15 @@ function runProgram() {
             var webTitle = title.toLowerCase().replace(new RegExp(' ', 'g'), '_');
             webTitle = webTitle.replace(new RegExp('#', 'g'), '');
             webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
-            webTitle = htmlEncode(webTitle);
-
+         
             var lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '_');
             lastWebTitle = lastWebTitle.replace(new RegExp('#', 'g'), '');
             lastWebTitle = lastWebTitle.replace(new RegExp('\\.', 'g'), '-');
-            lastWebTitle = htmlEncode(lastWebTitle);
-
+          
             var nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '_');
             nextWebTitle = nextWebTitle.replace(new RegExp('#', 'g'), '');
             nextWebTitle = nextWebTitle.replace(new RegExp('\\.', 'g'), '-');
-            nextWebTitle = htmlEncode(nextWebTitle);
-
-            console.log(webTitle);
-
+          
             if (title !== 'index' && title !== '') {
 
                 indexStr = hideThis ? indextStr : indexStr + "<li><a href = '" + webTitle + ".html'>" + title + "</a></li>";
@@ -269,8 +259,8 @@ function runProgram() {
             var backButtonMarkup = global.sequentialLinks ? "<a class = 'button-back' href = '" + lastWebTitle + ".html'>back</a>" : "<a class = 'button-back' href = 'index.html'>back</a>";
             var nextButtonMarkup = global.sequentialLinks ? "<br><br><a class = 'button-next' href = '" + nextWebTitle + ".html'>next</a>" : "<br><br><a class = 'button-next' href = 'index.html'>back</a>";
 
-            var backButton = title == "index" ? "" : backButtonMarkup;
-            var nextButton = title == 'index' && nextWebTitle.indexOf('%') > -1 ? "" : nextButtonMarkup;
+            var backButton = title == "index" || lastWebTitle.indexOf('%') > -1 ? "" : backButtonMarkup;
+            var nextButton = title == 'index' || nextWebTitle.indexOf('%') > -1 ? "" : nextButtonMarkup;
 
             var fileContents;
 
@@ -293,7 +283,7 @@ function runProgram() {
 
             } else {
 
-                includeInIndex = fileContents.replace('<h1>index</h1>', '');
+                //includeInIndex = fileContents.replace('<h1>index</h1>', '');
 
             } //after making file, gather stuff for index file
 
@@ -306,17 +296,21 @@ function runProgram() {
             }
 
             titleArray.push(title);
+            webTitleArray.push(webTitle);
 
         }
 
-        console.log(titleArray);
+        console.log(titleArray, webTitleArray);
 
         if (global.alphabetical) {
             titleArray.sort();
         }
 
         indexStr = commentDate + '<ul>'; //start over with this string
+        var j = -1;
+
         titleArray.map(function (one) {
+            j++;
 
             if (one.indexOf('%') > -1) {
                 return '';
@@ -327,13 +321,13 @@ function runProgram() {
             }
 
             var nonWebTitle = one.split(' (');
-            var webTitleTwo = one.toLowerCase().replace(new RegExp(' ', 'g'), '_')
+            var webTitleTwo = webTitleArray[j];
             webTitleTwo = webTitleTwo.split('_(');
 
             if (webTitleTwo.length > 1 && !hideThis) {
-                indexStr += "<li><a href = '" + htmlEncode(webTitleTwo[0]) + ".html'>" + nonWebTitle[0] + "</a> (" + nonWebTitle[1] + "</li>";
+                indexStr += "<li><a href = '" + webTitleTwo+ ".html'>" + nonWebTitle[0] + "</a> (" + nonWebTitle[1] + "</li>";
             } else {
-                indexStr += "<li><a href = '" + htmlEncode(webTitleTwo[0]) + ".html'>" + nonWebTitle[0] + "</a></li>";
+                indexStr += "<li><a href = '" + webTitleTwo + ".html'>" + nonWebTitle[0] + "</a></li>";
             }
 
         });
