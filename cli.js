@@ -26,6 +26,7 @@ var inquirer = require('inquirer'); //so we can ask questions
 var open = require('open'); //so we can open files
 var htmlEncode = require('htmlencode').htmlEncode //so we can make sure our links work
 var vinylFs = require('vinyl-fs');
+var striptags = require('striptags');
 var vinylFtp = require('vinyl-ftp');
 
 var inputFile = fs.createReadStream(fileToBloomFrom);
@@ -246,6 +247,8 @@ function runProgram() {
 
                 // fix where first one breaks
 
+                title = striptags(title); //strip tags
+                
                 var webTitle = title !== 'untitled' ? title.toLowerCase().replace(new RegExp(' ', 'g'), '_') : Math.random();
                 webTitle = webTitle.replace(new RegExp('#', 'g'), '');
                 webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
