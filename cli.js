@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
 global.headerString = "";
+global.headerMarkup = "";
 global.projectTitle = "";
 global.projectSubtitle = "";
 global.sequentialLinks = false;
@@ -83,7 +84,7 @@ inquirer.prompt([{
     global.projectTitle = "<h1>" + answers.title + "</h1>";
     global.projectSubtitle = "<h3>" + answers.subtitle + "</h3>";
 
-    global.headerString = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
+    global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
 
     if (answers.words) {
 
@@ -94,7 +95,6 @@ inquirer.prompt([{
     if (answers.alphabetical) {
 
         global.alphabetical = true;
-
     }
 
     if (answers.sequential) {
@@ -238,15 +238,15 @@ function runProgram() {
             lastTitle = striptags(lastTitle);
             nextTitle = striptags(nextTitle);
 
-            var webTitle = title.toLowerCase().replace(new RegExp(' ', 'g'), '_');
+            var webTitle = title.toLowerCase().replace(new RegExp(' ', 'g'), '-');
             webTitle = webTitle.replace(new RegExp('#', 'g'), '');
             webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
          
-            var lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '_');
+            var lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
             lastWebTitle = lastWebTitle.replace(new RegExp('#', 'g'), '');
             lastWebTitle = lastWebTitle.replace(new RegExp('\\.', 'g'), '-');
           
-            var nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '_');
+            var nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
             nextWebTitle = nextWebTitle.replace(new RegExp('#', 'g'), '');
             nextWebTitle = nextWebTitle.replace(new RegExp('\\.', 'g'), '-');
           
@@ -272,7 +272,9 @@ function runProgram() {
 
             if (title !== 'index' && !hideThis) {
 
-                fs.writeFile(outDirName + '/' + webTitle + '.html', global.headerString + fileContents, function (err) { // this is htmlencoding automatically so we don't do it here
+                var thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
+
+                fs.writeFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, function (err) { // this is htmlencoding automatically so we don't do it here
 
                     if (err) {
 
@@ -287,7 +289,7 @@ function runProgram() {
 
             } //after making file, gather stuff for index file
 
-            if (global.showWords == true && title !== '') {
+            if (global.showWords && title !== '' && title !== 'index') {
 
                 title = title + ' (' + wordCount + ' words)';
 
@@ -300,10 +302,9 @@ function runProgram() {
 
         }
 
-        console.log(titleArray, webTitleArray);
-
         if (global.alphabetical) {
             titleArray.sort();
+            webTitleArray.sort();
         }
 
         indexStr = commentDate + '<ul>'; //start over with this string
@@ -322,18 +323,18 @@ function runProgram() {
 
             var nonWebTitle = one.split(' (');
             var webTitleTwo = webTitleArray[j];
-            webTitleTwo = webTitleTwo.split('_(');
 
-            if (webTitleTwo.length > 1 && !hideThis) {
+            webTitleTwo = webTitleTwo.split('-(');
+
+            if (nonWebTitle.length > 1 && !hideThis) {
                 indexStr += "<li><a href = '" + webTitleTwo+ ".html'>" + nonWebTitle[0] + "</a> (" + nonWebTitle[1] + "</li>";
             } else {
                 indexStr += "<li><a href = '" + webTitleTwo + ".html'>" + nonWebTitle[0] + "</a></li>";
             }
 
         });
-
-
-        fs.writeFile(outDirName + '/index.html', (global.headerString + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + "</ul></body></html>"), function (err) {
+  
+        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + "</ul></body></html>"), function (err) {
 
             if (err) {
 
