@@ -297,8 +297,12 @@ function runProgram() {
 
             }
 
+            if (title !== '' && title !== 'index'){
+
             titleArray.push(title);
             webTitleArray.push(webTitle);
+
+            }
 
         }
 
