@@ -48,7 +48,7 @@ if (cssFileExists) {
 var indexStyles = "<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} a {color:#444;} a:visited{color:black}</style>";
 
 var coverImageExists = fs.existsSync('images/cover.jpg');
-var imageFolderExists = fs.existsSync('images');
+var imageFolderExists = fs.existsSync(outDirName + '/images/cover.jpg');
 var coverImage;
 
 var outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
