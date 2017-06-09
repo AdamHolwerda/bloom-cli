@@ -48,6 +48,7 @@ if (cssFileExists) {
 var indexStyles = "<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} a {color:#444;} a:visited{color:black}</style>";
 
 var coverImageExists = fs.existsSync('images/cover.jpg');
+var imageFolderExists = fs.existsSync('images');
 var coverImage;
 
 var outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
@@ -199,7 +200,10 @@ function runProgram() {
 
         if (coverImageExists) {
 
+            if (imageFolderExists){
             fs.mkdir('./' + outDirName + '/images');
+            }
+            
             fs.createReadStream('images/cover.jpg').pipe(fs.createWriteStream(outDirName + '/images/cover.jpg'));
 
             coverImage = "<img src = 'images/cover.jpg' />";
