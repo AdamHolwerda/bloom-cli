@@ -12,6 +12,10 @@ global.hostname = "";
 global.username = "";
 global.password = "";
 global.remotePath = "";
+global.googleAnalyticsID = "";
+global.googleAnalyticsScript = "";
+global.bloomFileSettings = {};
+global.useBloomFile = false;
 
 var userArgs = process.argv.slice(2);
 var fileToBloomFrom = userArgs[0];
@@ -29,13 +33,20 @@ var htmlEncode = require('htmlencode').htmlEncode //so we can make sure our link
 var vinylFs = require('vinyl-fs');
 var striptags = require('striptags');
 var vinylFtp = require('vinyl-ftp');
+var curl = require('curl-quotes');
 
 var inputFile = fs.createReadStream(fileToBloomFrom);
+var analyticsFileExists = fs.existsSync(__dirname +'/analytics.html');
 var headerFileExists = fs.existsSync(__dirname + '/header.html');
 var headerFile = "";
+var analyticsFile = "";
 
 if (headerFileExists) {
     headerFile = fs.createReadStream(__dirname + '/header.html');
+}
+
+if (analyticsFileExists) {
+    analyticsFile = fs.createReadStream(__dirname + '/analytics.html');
 }
 
 var cssFileExists = fs.existsSync('css/style.css');
@@ -46,41 +57,17 @@ if (cssFileExists) {
 }
 
 var indexStyles = "<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} a {color:#444;} a:visited{color:black}</style>";
-
 var coverImageExists = fs.existsSync('images/cover.jpg');
+var isThereABloomFile = fs.existsSync('./bloom.json');
 var imageFolderExists = fs.existsSync(outDirName + '/images/cover.jpg');
 var coverImage;
 
 var outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
 var outDir = fs.existsSync('./' + outDirName);
 
-inquirer.prompt([{
-    "name": "title",
-    "message": "What's the title of your project?"
-}, {
-    "name": "subtitle",
-    "message": "Give your project a subtitle?"
-}, {
-    "type": "confirm",
-    "name": "words",
-    "default": false,
-    "message": "Show word counts next to index links?"
-}, {
-    "type": "confirm",
-    "name": "alphabetical",
-    "default": false,
-    "message": "Alphebetize the links?"
-}, {
-    "type": "confirm",
-    "name": "sequential",
-    "default": false,
-    "message": "Should your sheets link sequentially instead of back to index page?"
-}, {
-    "type": "confirm",
-    "name": "ftp",
-    "default": false,
-    "message": "Bloom can upload your files for you, if you provide FTP details. Yeah?"
-}], function (answers) {
+
+function answersCallback(answers){
+
 
     global.projectTitle = "<h1>" + answers.title + "</h1>";
     global.projectSubtitle = "<h3>" + answers.subtitle + "</h3>";
@@ -88,20 +75,19 @@ inquirer.prompt([{
     global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
 
     if (answers.words) {
-
         global.showWords = true;
-
     }
 
     if (answers.alphabetical) {
-
         global.alphabetical = true;
     }
 
     if (answers.sequential) {
-
         global.sequentialLinks = true;
+    }
 
+    if (answers.googleAnalyticsID && answers.googleAnalyticsID !== ''){
+        global.googleAnalyticsID = answers.googleAnalyticsID;
     }
 
     if (answers.ftp) {
@@ -141,7 +127,82 @@ inquirer.prompt([{
 
     }
 
-});
+
+}
+
+
+function askTheQuestions(){
+  
+  inquirer.prompt([{
+                "name": "title",
+                "message": "What's the title of your project?"
+            }, {
+                "name": "subtitle",
+                "message": "Give your project a subtitle?"
+            }, {
+                "type": "confirm",
+                "name": "words",
+                "default": false,
+                "message": "Show word counts next to index links?"
+            }, {
+                "type": "confirm",
+                "name": "alphabetical",
+                "default": false,
+                "message": "Alphebetize the links?"
+            }, {
+                "type": "confirm",
+                "name": "sequential",
+                "default": false,
+                "message": "Should your sheets link sequentially instead of back to index page?"
+            }, {
+                "name" : "googleAnalyticsID",
+                message : "If you have a Google Analytics ID, Bloom will add a script on every page. Otherwise leave blank"
+            }, {
+                "type": "confirm",
+                "name": "ftp",
+                "default": false,
+                "message": "Bloom can upload your files for you, if you provide FTP details. Yeah?"
+            }], function (answers) {
+
+                answersCallback(answers);
+
+            });
+
+}
+
+
+if (isThereABloomFile){
+
+    inquirer.prompt([{
+        name: "useBloomFile",
+        message: "Use the settings in this folder's bloomfile?",
+        type: "confirm",
+        default: true
+    }], function(answer){
+
+        global.useBloomFile = answer.useBloomFile;
+
+          if (answer.useBloomFile){
+
+              global.bloomFileSettings = require('./bloom.json');
+
+              answersCallback(global.bloomFileSettings);
+
+          } else {
+                
+          askTheQuestions();
+
+          }
+
+    });
+
+} else {
+
+    askTheQuestions();
+
+}
+
+
 
 function makeFileAString(file) {
 
@@ -156,6 +217,7 @@ function makeFileAString(file) {
     return deferred.promise; //output our data
 
 }
+
 
 // HERE IS WHERE OUR PROGRAM STARTS
 
@@ -177,6 +239,15 @@ if (headerFileExists) {
     console.log('There is no header file');
 }
 
+if (analyticsFileExists) {
+
+    makeFileAString(analyticsFile)
+        .then(function (data) {
+            global.googleAnalyticsScript = data;
+        });
+
+} 
+
 if (cssFileExists) {
     makeFileAString(cssFile).then(function (data) {
 
@@ -193,8 +264,10 @@ function runProgram() {
 
     makeFileAString(inputFile).then(function (data) {
 
+        var curlified = curl(data);
+
         var splitter = '<h1>'; // we could have this be a prompted answer
-        var textArray = data.split(splitter);
+        var textArray = curlified.split(splitter);
 
         var includeInIndex = "";
 
@@ -260,7 +333,7 @@ function runProgram() {
 
             }
 
-            var backButtonMarkup = global.sequentialLinks ? "<a class = 'button-back' href = '" + lastWebTitle + ".html'>back</a>" : "<a class = 'button-back' href = 'index.html'>back</a>";
+            var backButtonMarkup = global.sequentialLinks ? "<a class = 'button-back' href = '" + lastWebTitle + ".html'>previous</a>" : "<a class = 'button-back' href = 'index.html'>back</a>";
             var nextButtonMarkup = global.sequentialLinks ? "<br><br><a class = 'button-next' href = '" + nextWebTitle + ".html'>next</a>" : "<br><br><a class = 'button-next' href = 'index.html'>back</a>";
 
             var backButton = title == "index" || lastWebTitle.indexOf('%') > -1 ? "" : backButtonMarkup;
@@ -268,9 +341,11 @@ function runProgram() {
 
             var fileContents;
 
-            fileContents = backButton + splitter + textArray[i] + nextButton;
+            var analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
-            var wordCount = fileContents.split(' ').length;
+            fileContents = backButton + splitter + textArray[i] + nextButton + analytics + "</body></html>";
+
+            var wordCount = textArray[i].split(' ').length;
 
             //spit out the file in this next part
 
@@ -287,11 +362,7 @@ function runProgram() {
 
                 });
 
-            } else {
-
-                //includeInIndex = fileContents.replace('<h1>index</h1>', '');
-
-            } //after making file, gather stuff for index file
+            }  //after making file, gather stuff for index file
 
             if (global.showWords && title !== '' && title !== 'index') {
 
@@ -341,8 +412,10 @@ function runProgram() {
             }
 
         });
-  
-        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + "</ul></body></html>"), function (err) {
+
+        var analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
+
+        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + "</ul>"+analytics+"</body></html>"), function (err) {
 
             if (err) {
 
