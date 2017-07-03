@@ -1,5 +1,17 @@
 #! /usr/bin/env node
 
+var fs = require('fs'); // get fileSystem
+var concatStream = require('concat-stream'); //put a streaming chunked file into one glob
+var q = require('q'); //so we can defer
+var inquirer = require('inquirer'); //so we can ask questions
+var open = require('open'); //so we can open files
+var htmlEncode = require('htmlencode').htmlEncode //so we can make sure our links work
+var vinylFs = require('vinyl-fs');
+var striptags = require('striptags');
+var vinylFtp = require('vinyl-ftp');
+var jsonfile = require('jsonfile');
+var bloomfile = './bloom.json';
+
 global.headerString = "";
 global.headerMarkup = "";
 global.projectTitle = "";
@@ -24,16 +36,15 @@ if (!fileToBloomFrom) {
     fileToBloomFrom = 'index.html'; //assume it's index.html if they didn't provide a file
 }
 
-var fs = require('fs'); // get fileSystem
-var concatStream = require('concat-stream'); //put a streaming chunked file into one glob
-var q = require('q'); //so we can defer
-var inquirer = require('inquirer'); //so we can ask questions
-var open = require('open'); //so we can open files
-var htmlEncode = require('htmlencode').htmlEncode //so we can make sure our links work
-var vinylFs = require('vinyl-fs');
-var striptags = require('striptags');
-var vinylFtp = require('vinyl-ftp');
-var curl = require('curl-quotes');
+var isThereABloomFile = fs.existsSync(bloomfile);
+
+if (isThereABloomFile){
+    global.bloomFileSettings = jsonfile.readFile(bloomfile, function(error, data){
+
+        if (error){console.log(error)}
+        global.bloomFileSettings = data;
+    });
+}
 
 var inputFile = fs.createReadStream(fileToBloomFrom);
 var analyticsFileExists = fs.existsSync(__dirname +'/analytics.html');
@@ -58,8 +69,8 @@ if (cssFileExists) {
 
 var indexStyles = "<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} a {color:#444;} a:visited{color:black}</style>";
 var coverImageExists = fs.existsSync('images/cover.jpg');
-var isThereABloomFile = fs.existsSync('./bloom.json');
-var imageFolderExists = fs.existsSync(outDirName + '/images/cover.jpg');
+
+var imageFolderExists = fs.existsSync('./' + outDirName + '/images');
 var coverImage;
 
 var outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
@@ -184,8 +195,6 @@ if (isThereABloomFile){
 
           if (answer.useBloomFile){
 
-              global.bloomFileSettings = require('./bloom.json');
-
               answersCallback(global.bloomFileSettings);
 
           } else {
@@ -201,8 +210,6 @@ if (isThereABloomFile){
     askTheQuestions();
 
 }
-
-
 
 function makeFileAString(file) {
 
@@ -264,16 +271,15 @@ function runProgram() {
 
     makeFileAString(inputFile).then(function (data) {
 
-        var curlified = curl(data);
-
         var splitter = '<h1>'; // we could have this be a prompted answer
-        var textArray = curlified.split(splitter);
+
+        var textArray = data.split(splitter);
 
         var includeInIndex = "";
 
         if (coverImageExists) {
 
-            if (imageFolderExists){
+            if (!imageFolderExists){
             fs.mkdir('./' + outDirName + '/images');
             }
             
@@ -343,9 +349,11 @@ function runProgram() {
 
             var analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
-            fileContents = backButton + splitter + textArray[i] + nextButton + analytics + "</body></html>";
+            var finalText = textArray[i];
 
-            var wordCount = textArray[i].split(' ').length;
+            fileContents = backButton + splitter + finalText + nextButton + analytics + "</body></html>";
+
+            var wordCount = finalText.split(' ').length;
 
             //spit out the file in this next part
 
