@@ -1,0 +1,161 @@
+/*
+	Medium Style
+*/
+
+body {
+	font-family: "FreightText Pro",Georgia,Cambria,"Times New Roman",Times,serif;
+	letter-spacing: .01rem;
+	font-weight: 300;
+	font-style: normal;
+	font-size: 22px;
+	line-height: 1.5;
+	width: 700px;
+	margin: 0 auto;
+	word-break: break-word;
+	word-wrap: break-word;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	padding-top: 50px;
+} 
+
+
+p {
+	display: block;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+}
+
+
+
+h1 {
+	font-family: "BerninoSansOffc", "Bernono Sans", "Jaf Bernino Sans","Lucida Grande","Lucida Sans Unicode","Lucida Sans",Geneva,Verdana,sans-serif;
+	letter-spacing: -0.02em;
+	font-weight: 700;
+	font-style: normal;
+	font-size: 60px;
+	margin-left: -3px;
+	line-height: 1;
+	letter-spacing: -0.04em;
+	margin-top: 40px;
+	padding-top: 0;
+	margin-bottom: 8px;
+	color: rgba(0,0,0,0.8);
+}
+
+h2 {
+	font-family: "BerninoSansOffc", "Bernono Sans", "Jaf Bernino Sans","Lucida Grande","Lucida Sans Unicode","Lucida Sans",Geneva,Verdana,sans-serif;
+	letter-spacing: -0.02em;
+	font-weight: 700;
+	font-style: normal;
+	font-size: 36px;
+	margin-left: -1.8px;
+	line-height: 1.2;
+	margin-top: 40px;
+	margin-bottom: 4px;
+	color: rgba(0,0,0,0.8);
+}
+
+h3, h4, h5, h6 {
+	font-family: "BerninoSansOffc", "Bernono Sans", "Jaf Bernino Sans","Lucida Grande","Lucida Sans Unicode","Lucida Sans",Geneva,Verdana,sans-serif;
+	letter-spacing: -0.02em;
+	font-weight: 300;
+	font-style: normal;
+	font-size: 32px;
+	margin-left: -1.6px;
+	line-height: 1.2;
+	color: rgba(0,0,0,0.44);
+	margin-top: 40px;
+	margin-bottom: 2px;
+}
+
+blockquote {
+	font-family: "FreightText Pro",Georgia,Cambria,"Times New Roman",Times,serif;
+	letter-spacing: .01rem;
+	font-weight: 400;
+	font-style: italic;
+	border-left: 3px solid rgba(0,0,0,0.8);
+	padding-left: 20px;
+	margin-left: -23px;
+	padding-bottom: 0;
+}
+
+ul {
+	display: block;
+	list-style-type: disc;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	-webkit-padding-start: 40px;
+}
+
+
+li {
+	display: list-item;
+	text-align: -webkit-match-parent;
+	margin-left: 30px;
+	margin-bottom: 12px;
+	padding-top: 2px;
+}
+
+a {
+	text-decoration: none;
+	background-image: linear-gradient(to bottom, rgba(0,0,0,0) 75%, rgba(0,0,0,0.8) 75%);
+	background-repeat: repeat-x;
+	color: rgba(0,0,0,0.8);
+	background-size: 2px 2px;
+	background-position: 0 23px;
+}
+
+figure  {
+	position: relative;
+	width: 700px;
+	text-align: center;
+	display: block;
+	margin: auto;
+	box-sizing: border-box;
+}
+
+figure img {
+	border: none;
+	max-width: 100%;
+}
+
+figcaption {
+	position: absolute;
+	left: -172px;
+	width: 150px;
+	top: 0;
+	text-align: right;
+	margin-top: 0;
+	font-family: "FreightText Pro",Georgia,Cambria,"Times New Roman",Times,serif;
+	letter-spacing: .01rem;
+	font-weight: 400;
+	font-style: italic;
+	font-size: 14px;
+	line-height: 1.4;
+	color: rgba(0,0,0,0.6);
+	outline: 0;
+	z-index: 300;
+	padding-top: 0.7em;
+}
+
+
+figcaption::before { 
+    content: "______";
+    float:right;
+    margin-top:-24px;
+	color: #D9D9D9;
+}
+
+code {
+  font-family: Menlo,Monaco,"Courier New",Courier,monospace;
+  font-size: 16px;
+  background: rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
