@@ -1,56 +1,62 @@
 #! /usr/bin/env node
 
-var fs = require('fs'); // get fileSystem
-var concatStream = require('concat-stream'); //put a streaming chunked file into one glob
-var q = require('q'); //so we can defer
-var inquirer = require('inquirer'); //so we can ask questions
-var open = require('open'); //so we can open files
-var htmlEncode = require('htmlencode').htmlEncode //so we can make sure our links work
-var vinylFs = require('vinyl-fs');
-var striptags = require('striptags');
-var vinylFtp = require('vinyl-ftp');
-var jsonfile = require('jsonfile');
-var bloomfile = './bloom.json';
+const fs = require('fs'); // get fileSystem
+const concatStream = require('concat-stream'); //put a streaming chunked file into one glob
+const q = require('q'); //so we can defer
+const inquirer = require('inquirer'); //so we can ask questions
+const open = require('open'); //so we can open files
+const htmlEncode = require('htmlencode').htmlEncode; //so we can make sure our links work
+const vinylFs = require('vinyl-fs');
+const striptags = require('striptags');
+const vinylFtp = require('vinyl-ftp');
+const jsonfile = require('jsonfile');
+const removeMD = require('remove-markdown');
+const entities = require('entities');
+const ssmlVal = require('ssml-validator');
+const bloomfile = './bloom.json';
 
-global.headerString = "";
-global.headerMarkup = "";
-global.projectTitle = "";
-global.projectSubtitle = "";
+global.headerString = '';
+global.headerMarkup = '';
+global.projectTitle = '';
+global.projectSubtitle = '';
 global.sequentialLinks = false;
 global.showWords = false;
 global.alphabetical = false;
-global.ftp = false
-global.hostname = "";
-global.username = "";
-global.password = "";
-global.remotePath = "";
-global.googleAnalyticsID = "";
-global.googleAnalyticsScript = "";
+global.ftp = false;
+global.hostname = '';
+global.username = '';
+global.password = '';
+global.remotePath = '';
+global.googleAnalyticsID = '';
+global.googleAnalyticsScript = '';
 global.bloomFileSettings = {};
 global.useBloomFile = false;
 
-var userArgs = process.argv.slice(2);
-var fileToBloomFrom = userArgs[0];
+const userArgs = process.argv.slice(2);
+let fileToBloomFrom = userArgs[0];
 
 if (!fileToBloomFrom) {
     fileToBloomFrom = 'index.html'; //assume it's index.html if they didn't provide a file
 }
 
-var isThereABloomFile = fs.existsSync(bloomfile);
+const isThereABloomFile = fs.existsSync(bloomfile);
 
-if (isThereABloomFile){
-    global.bloomFileSettings = jsonfile.readFile(bloomfile, function(error, data){
+if (isThereABloomFile) {
+    global.bloomFileSettings = jsonfile.readFile(bloomfile, (error, data) => {
 
-        if (error){console.log(error)}
+        if (error) {
+            console.log(error)
+            ;
+        }
         global.bloomFileSettings = data;
     });
 }
 
-var inputFile = fs.createReadStream(fileToBloomFrom);
-var analyticsFileExists = fs.existsSync(__dirname +'/analytics.html');
-var headerFileExists = fs.existsSync(__dirname + '/header.html');
-var headerFile = "";
-var analyticsFile = "";
+const inputFile = fs.createReadStream(fileToBloomFrom);
+const analyticsFileExists = fs.existsSync(__dirname + '/analytics.html');
+const headerFileExists = fs.existsSync(__dirname + '/header.html');
+let headerFile = '';
+let analyticsFile = '';
 
 if (headerFileExists) {
     headerFile = fs.createReadStream(__dirname + '/header.html');
@@ -60,28 +66,27 @@ if (analyticsFileExists) {
     analyticsFile = fs.createReadStream(__dirname + '/analytics.html');
 }
 
-var cssFileExists = fs.existsSync('css/style.css');
-var cssFile;
+const cssFileExists = fs.existsSync('css/style.css');
+let cssFile;
 
 if (cssFileExists) {
     cssFile = fs.createReadStream('css/style.css');
 }
 
-var indexStyles = "<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} a {color:#444;} a:visited{color:black}</style>";
-var coverImageExists = fs.existsSync('images/cover.jpg');
+const indexStyles = '<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} a {color:#444;} a:visited{color:black}</style>';
+const coverImageExists = fs.existsSync('images/cover.jpg');
 
-var imageFolderExists = fs.existsSync('./' + outDirName + '/images');
-var coverImage;
+const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
 
-var outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
-var outDir = fs.existsSync('./' + outDirName);
+const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
+let coverImage;     
 
+const outDir = fs.existsSync('./' + outDirName);
 
-function answersCallback(answers){
+function answersCallback(answers) {
 
-
-    global.projectTitle = "<h1>" + answers.title + "</h1>";
-    global.projectSubtitle = "<h3>" + answers.subtitle + "</h3>";
+    global.projectTitle = '<h1>' + answers.title + '</h1>';
+    global.projectSubtitle = '<h3>' + answers.subtitle + '</h3>';
 
     global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
 
@@ -97,7 +102,7 @@ function answersCallback(answers){
         global.sequentialLinks = true;
     }
 
-    if (answers.googleAnalyticsID && answers.googleAnalyticsID !== ''){
+    if (answers.googleAnalyticsID && answers.googleAnalyticsID !== '') {
         global.googleAnalyticsID = answers.googleAnalyticsID;
     }
 
@@ -106,21 +111,21 @@ function answersCallback(answers){
         global.ftp = true;
 
         inquirer.prompt([{
-            "name": "hostname",
-            "message": "Enter your hostname (exclude ftp:// or www prefixes)",
+            'name': 'hostname',
+            'message': 'Enter your hostname (exclude ftp:// or www prefixes)'
         }, {
-            "name": "username",
-            "message": "Enter your username for that host"
+            'name': 'username',
+            'message': 'Enter your username for that host'
         }, {
-            "name": "password",
-            "type": "password",
-            "message": "Enter your password for that host"
+            'name': 'password',
+            'type': 'password',
+            'message': 'Enter your password for that host'
         }, {
-            "name": "remotePath",
-            "message": "Type a remote directory you'd like to bloom into (ex: html/project)"
-        },
+            'name': 'remotePath',
+            'message': 'Type a remote directory you\'d like to bloom into (ex: html/project)'
+        }
 
-        ], function (moreAnswers) {
+        ], (moreAnswers) => {
 
             global.hostname = moreAnswers.hostname;
             global.username = moreAnswers.username;
@@ -138,70 +143,69 @@ function answersCallback(answers){
 
     }
 
-
 }
 
 
-function askTheQuestions(){
+function askTheQuestions() {
   
-  inquirer.prompt([{
-                "name": "title",
-                "message": "What's the title of your project?"
-            }, {
-                "name": "subtitle",
-                "message": "Give your project a subtitle?"
-            }, {
-                "type": "confirm",
-                "name": "words",
-                "default": false,
-                "message": "Show word counts next to index links?"
-            }, {
-                "type": "confirm",
-                "name": "alphabetical",
-                "default": false,
-                "message": "Alphebetize the links?"
-            }, {
-                "type": "confirm",
-                "name": "sequential",
-                "default": false,
-                "message": "Should your sheets link sequentially instead of back to index page?"
-            }, {
-                "name" : "googleAnalyticsID",
-                message : "If you have a Google Analytics ID, Bloom will add a script on every page. Otherwise leave blank"
-            }, {
-                "type": "confirm",
-                "name": "ftp",
-                "default": false,
-                "message": "Bloom can upload your files for you, if you provide FTP details. Yeah?"
-            }], function (answers) {
+    inquirer.prompt([{
+        'name': 'title',
+        'message': 'What\'s the title of your project?'
+    }, {
+        'name': 'subtitle',
+        'message': 'Does your project have a subtitle?'
+    }, {
+        'type': 'confirm',
+        'name': 'words',
+        'default': false,
+        'message': 'Show word counts next to index links?'
+    }, {
+        'type': 'confirm',
+        'name': 'alphabetical',
+        'default': false,
+        'message': 'Alphebetize the links?'
+    }, {
+        'type': 'confirm',
+        'name': 'sequential',
+        'default': false,
+        'message': 'Should your sheets link sequentially instead of back to index page?'
+    }, {
+        'name' : 'googleAnalyticsID',
+        message : 'If you have a Google Analytics ID, Bloom will add a script on every page. Otherwise leave blank'
+    }, {
+        'type': 'confirm',
+        'name': 'ftp',
+        'default': false,
+        'message': 'Bloom can upload your files for you, if you provide FTP details. Yeah?'
+    }], (answers) => {
 
-                answersCallback(answers);
+        answersCallback(answers);
 
-            });
+    });
 
 }
 
 
-if (isThereABloomFile){
+if (isThereABloomFile) {
 
     inquirer.prompt([{
-        name: "useBloomFile",
-        message: "Use the settings in this folder's bloomfile?",
-        type: "confirm",
+        name: 'useBloomFile',
+        message: 'Use the settings in this folder\'s bloomfile?',
+        type: 'confirm',
         default: true
-    }], function(answer){
+    }], (answer) => {
 
         global.useBloomFile = answer.useBloomFile;
 
-          if (answer.useBloomFile){
+        if (answer.useBloomFile) {
 
-              answersCallback(global.bloomFileSettings);
+            answersCallback(global.bloomFileSettings);
 
-          } else {
+        } else {
                 
-          askTheQuestions();
+            askTheQuestions();
 
-          }
+        }
 
     });
 
@@ -213,9 +217,9 @@ if (isThereABloomFile){
 
 function makeFileAString(file) {
 
-    var deferred = q.defer(); // make a new deferred object so we can chain some shit
+    const deferred = q.defer(); // make a new deferred object so we can chain some shit
 
-    file.pipe(concatStream(function (data) {
+    file.pipe(concatStream((data) => {
 
         deferred.resolve(data.toString()); //resolve the deferred object and make it fill with the data
 
@@ -234,10 +238,23 @@ if (!outDir) {
 
 }
 
+const txtDir = fs.existsSync('./' + outDirName + '/txt');
+const ssmlDir = fs.existsSync('./' + outDirName + '/ssml');
+
+if (!txtDir) {
+
+    fs.mkdir('./' + outDirName + '/txt'); //make a txt folder
+}
+
+if (!ssmlDir) {
+
+    fs.mkdir('./' + outDirName + '/ssml'); //make an ssml folder
+}
+
 if (headerFileExists) {
 
     makeFileAString(headerFile)
-        .then(function (data) {
+        .then((data) => {
 
             global.headerString = data;
         });
@@ -249,16 +266,16 @@ if (headerFileExists) {
 if (analyticsFileExists) {
 
     makeFileAString(analyticsFile)
-        .then(function (data) {
+        .then((data) => {
             global.googleAnalyticsScript = data;
         });
 
 } 
 
 if (cssFileExists) {
-    makeFileAString(cssFile).then(function (data) {
+    makeFileAString(cssFile).then((data) => {
 
-        fs.writeFile(outDirName + '/style.css', data, function (err) {
+        fs.writeFile(outDirName + '/style.css', data, (err) => {
             if (err) {
                 console.log('error', err);
             }
@@ -269,48 +286,46 @@ if (cssFileExists) {
 
 function runProgram() {
 
-    makeFileAString(inputFile).then(function (data) {
+    makeFileAString(inputFile).then((data) => {
 
-        var splitter = '<h1>'; // we could have this be a prompted answer
+        const splitter = '<h1>'; // we could have this be a prompted answer
 
-        var textArray = data.split(splitter);
+        const textArray = data.split(splitter);
 
-        var includeInIndex = "";
+        const includeInIndex = '';
 
         if (coverImageExists) {
 
-            if (!imageFolderExists){
-            fs.mkdir('./' + outDirName + '/images');
+            if (!imageFolderExists) {
+                fs.mkdir('./' + outDirName + '/images');
             }
             
             fs.createReadStream('images/cover.jpg').pipe(fs.createWriteStream(outDirName + '/images/cover.jpg'));
 
-            coverImage = "<img src = 'images/cover.jpg' />";
+            coverImage = '<img src = \'images/cover.jpg\' />';
 
         } else {
-            coverImage = "";
+            coverImage = '';
         }
 
-        var datetime = new Date();
+        const datetime = new Date();
 
-        var cssLink = "<link rel = 'stylesheet' href='style.css' />";
+        const commentDate = '<!-- Generated on ' + datetime + ' with bloom-cli -->';
 
-        var commentDate = '<!-- Generated on ' + datetime + ' with bloom-cli -->';
+        let indexStr = commentDate + '<ul>';
 
-        var indexStr = commentDate + '<ul>';
+        const titleArray = [];
+        const webTitleArray = [];
 
-        var titleArray = [];
-        var webTitleArray = [];
+        for (let i = 0; i < textArray.length; i++) {
 
-        for (var i = 0; i < textArray.length; i++) {
+            const next = i + 1;
+            const last = i - 1;
 
-            var next = i + 1;
-            var last = i - 1;
-
-            var title = i > 0 ? textArray[i].split('</h1>')[0] : "index";
-            var hideThis = false;
-            var nextTitle = next < textArray.length ? textArray[next].split('</h1>')[0] : "index";
-            var lastTitle = last > 0 ? textArray[last].split('</h1>')[0] : "";
+            let title = i > 0 ? textArray[i].split('</h1>')[0] : 'index';
+            let hideThis = false;
+            let nextTitle = next < textArray.length ? textArray[next].split('</h1>')[0] : 'index';
+            let lastTitle = last > 0 ? textArray[last].split('</h1>')[0] : '';
 
 
             if (title.indexOf('%') > -1) {
@@ -321,47 +336,48 @@ function runProgram() {
             lastTitle = striptags(lastTitle);
             nextTitle = striptags(nextTitle);
 
-            var webTitle = title.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+            let webTitle = title.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+
             webTitle = webTitle.replace(new RegExp('#', 'g'), '');
             webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
          
-            var lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+            let lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+
             lastWebTitle = lastWebTitle.replace(new RegExp('#', 'g'), '');
             lastWebTitle = lastWebTitle.replace(new RegExp('\\.', 'g'), '-');
           
-            var nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+            let nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+
             nextWebTitle = nextWebTitle.replace(new RegExp('#', 'g'), '');
             nextWebTitle = nextWebTitle.replace(new RegExp('\\.', 'g'), '-');
           
             if (title !== 'index' && title !== '') {
 
-                indexStr = hideThis ? indextStr : indexStr + "<li><a href = '" + webTitle + ".html'>" + title + "</a></li>";
+                indexStr = hideThis ? indexStr : indexStr + '<li><a href = \'' + webTitle + '.html\'>' + title + '</a></li>';
 
             }
 
-            var backButtonMarkup = global.sequentialLinks ? "<a class = 'button-back' href = '" + lastWebTitle + ".html'>previous</a>" : "<a class = 'button-back' href = 'index.html'>back</a>";
-            var nextButtonMarkup = global.sequentialLinks ? "<br><br><a class = 'button-next' href = '" + nextWebTitle + ".html'>next</a>" : "<br><br><a class = 'button-next' href = 'index.html'>back</a>";
+            const backButtonMarkup = global.sequentialLinks ? '<a class = \'button-back\' href = \'' + lastWebTitle + '.html\'>previous</a>' : '<a class = \'button-back\' href = \'index.html\'>back</a>';
+            const nextButtonMarkup = global.sequentialLinks ? '<br><br><a class = \'button-next\' href = \'' + nextWebTitle + '.html\'>next</a>' : '<br><br><a class = \'button-next\' href = \'index.html\'>back</a>';
 
-            var backButton = title == "index" || lastWebTitle.indexOf('%') > -1 ? "" : backButtonMarkup;
-            var nextButton = title == 'index' || nextWebTitle.indexOf('%') > -1 ? "" : nextButtonMarkup;
+            const backButton = title === 'index' || lastWebTitle.indexOf('%') > -1 ? '' : backButtonMarkup;
+            const nextButton = title === 'index' || nextWebTitle.indexOf('%') > -1 ? '' : nextButtonMarkup;
 
-            var fileContents;
+            const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
-            var analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
+            const finalText = textArray[i];
 
-            var finalText = textArray[i];
+            const fileContents = backButton + splitter + finalText + nextButton + analytics + '</body></html>';
 
-            fileContents = backButton + splitter + finalText + nextButton + analytics + "</body></html>";
-
-            var wordCount = finalText.split(' ').length;
+            const wordCount = finalText.split(' ').length;
 
             //spit out the file in this next part
 
             if (title !== 'index' && !hideThis) {
 
-                var thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
+                const thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
 
-                fs.writeFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, function (err) { // this is htmlencoding automatically so we don't do it here
+                fs.writeFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, (err) => { // this is htmlencoding automatically so we don't do it here
 
                     if (err) {
 
@@ -369,6 +385,41 @@ function runProgram() {
                     }
 
                 });
+
+
+                //throw stripped versions in txt folder
+
+                let file = entities.decodeHTML(removeMD(splitter + finalText));
+
+                fs.writeFile(outDirName + '/txt/' + webTitle + '.txt', file, (err) => { 
+
+                    if (err) {
+
+                        console.log('error2', err);
+                    }
+
+                });
+
+                const prepend = '<speak>';
+                const append = '</speak>';
+
+                file = file.replace(/\n\n/ , '<break time = "1s" /> by ' + global.bloomFileSettings.author + '<break time = "3s" />');
+                file = file.replace(/\n\n/g , '<break time = "1s" />');
+                file = file.replace(/\n/g , '');
+
+                file = prepend + file + append;
+
+                file = ssmlVal.correct(file);
+
+                fs.writeFile(outDirName + '/ssml/' + webTitle + '.xml', file, (err) => { 
+
+                    if (err) {
+
+                        console.log('error2', err);
+                    }
+
+                });
+
 
             }  //after making file, gather stuff for index file
 
@@ -380,10 +431,10 @@ function runProgram() {
 
             }
 
-            if (title !== '' && title !== 'index'){
+            if (title !== '' && title !== 'index') {
 
-            titleArray.push(title);
-            webTitleArray.push(webTitle);
+                titleArray.push(title);
+                webTitleArray.push(webTitle);
 
             }
 
@@ -395,35 +446,35 @@ function runProgram() {
         }
 
         indexStr = commentDate + '<ul>'; //start over with this string
-        var j = -1;
+        let j = -1;
 
-        titleArray.map(function (one) {
+        titleArray.map((one) => {
             j++;
 
             if (one.indexOf('%') > -1) {
                 return '';
             }
 
-            if (one === "index") {
+            if (one === 'index') {
                 return '';
             }
 
-            var nonWebTitle = one.split(' (');
-            var webTitleTwo = webTitleArray[j];
+            const nonWebTitle = one.split(' (');
+            let webTitleTwo = webTitleArray[j];
 
             webTitleTwo = webTitleTwo.split('-(');
 
             if (nonWebTitle.length > 1 && !hideThis) {
-                indexStr += "<li><a href = '" + webTitleTwo+ ".html'>" + nonWebTitle[0] + "</a> (" + nonWebTitle[1] + "</li>";
+                indexStr += '<li><a href = \'' + webTitleTwo + '.html\'>' + nonWebTitle[0] + '</a> (' + nonWebTitle[1] + '</li>';
             } else {
-                indexStr += "<li><a href = '" + webTitleTwo + ".html'>" + nonWebTitle[0] + "</a></li>";
+                indexStr += '<li><a href = \'' + webTitleTwo + '.html\'>' + nonWebTitle[0] + '</a></li>';
             }
 
         });
 
-        var analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
+        const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
-        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + "</ul>"+analytics+"</body></html>"), function (err) {
+        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>'), (err) => {
 
             if (err) {
 
@@ -434,7 +485,7 @@ function runProgram() {
 
             if (global.ftp) {
 
-                var conn = new vinylFtp({
+                const conn = new vinylFtp({
                     host: global.hostname,
                     user: global.username,
                     password: global.password,
