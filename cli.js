@@ -238,13 +238,7 @@ if (!outDir) {
 
 }
 
-const txtDir = fs.existsSync('./' + outDirName + '/txt');
 const ssmlDir = fs.existsSync('./' + outDirName + '/ssml');
-
-if (!txtDir) {
-
-    fs.mkdir('./' + outDirName + '/txt'); //make a txt folder
-}
 
 if (!ssmlDir) {
 
@@ -391,19 +385,12 @@ function runProgram() {
 
                 let file = entities.decodeHTML(removeMD(splitter + finalText));
 
-                fs.writeFile(outDirName + '/txt/' + webTitle + '.txt', file, (err) => { 
-
-                    if (err) {
-
-                        console.log('error2', err);
-                    }
-
-                });
-
                 const prepend = '<speak>';
                 const append = '</speak>';
 
-                file = file.replace(/\n\n/ , '<break time = "1s" /> by ' + global.bloomFileSettings.author + '<break time = "3s" />');
+                const authorOrNot = global.bloomFileSettings.author ? '<break time = "1s" /> by ' + global.bloomFileSettings.author + '<break time = "3s" />' : '<break time = "3s" />';
+
+                file = file.replace(/\n\n/ , authorOrNot);
                 file = file.replace(/\n\n/g , '<break time = "1s" />');
                 file = file.replace(/\n/g , '');
 
@@ -464,7 +451,7 @@ function runProgram() {
 
             webTitleTwo = webTitleTwo.split('-(');
 
-            if (nonWebTitle.length > 1 && !hideThis) {
+            if (nonWebTitle.length > 1) {
                 indexStr += '<li><a href = \'' + webTitleTwo + '.html\'>' + nonWebTitle[0] + '</a> (' + nonWebTitle[1] + '</li>';
             } else {
                 indexStr += '<li><a href = \'' + webTitleTwo + '.html\'>' + nonWebTitle[0] + '</a></li>';
