@@ -229,6 +229,14 @@ function makeFileAString(file) {
 
 }
 
+ function numberWithCommas(x) {
+    if (!x) {
+        return '';
+    }
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+
 
 // HERE IS WHERE OUR PROGRAM STARTS
 
@@ -392,6 +400,8 @@ function runProgram() {
 
                 file = file.replace(/\n\n/ , authorOrNot);
                 file = file.replace(/\n\n/g , '<break time = "1s" />');
+                file = file.replace(/--/g , '<break time = "800ms" />');
+                file = file.replace(/ - /g , '<break time = "800ms" />');
                 file = file.replace(/\n/g , '');
 
                 file = prepend + file + append;
@@ -412,7 +422,7 @@ function runProgram() {
 
             if (global.showWords && title !== '' && title !== 'index') {
 
-                title = title + ' (' + wordCount + ' words)';
+                title = title + ' (' + numberWithCommas(wordCount) + ' words)';
 
                 indexStr = indexStr.replace(new RegExp(title), title + ' (' + wordCount + ' words)');
 
@@ -428,7 +438,9 @@ function runProgram() {
         }
 
         if (global.alphabetical) {
-            titleArray.sort();
+            titleArray.sort((a, b) => {
+                return a.toLowerCase().localeCompare(b.toLowerCase());
+            });
             webTitleArray.sort();
         }
 
