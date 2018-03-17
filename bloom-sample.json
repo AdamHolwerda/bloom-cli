@@ -5,8 +5,7 @@
     "words" : true, // show word count
     "alphabetical" : true, //alphabetize list of stories
     "sequential" : false, //link to next or back to index on pages
-    "ftp" : false, // bloom can upload files
     "ssml": true,
-    "mp3" : true, //requires Amazon Polly config, uses aws-tts
+    "ftp" : false, // bloom can upload files
     "googleAnalyticsID" : "UA-hey hey hey"
 }

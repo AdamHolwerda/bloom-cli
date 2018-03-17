@@ -27,6 +27,7 @@ global.hostname = '';
 global.username = '';
 global.password = '';
 global.remotePath = '';
+global.ssml = false;
 global.googleAnalyticsID = '';
 global.googleAnalyticsScript = '';
 global.bloomFileSettings = {};
@@ -73,13 +74,13 @@ if (cssFileExists) {
     cssFile = fs.createReadStream('css/style.css');
 }
 
-const indexStyles = '<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} a {color:#444;} a:visited{color:black}</style>';
+const indexStyles = '<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} li {color:#aaa;} a {color:#444;} a:visited{color:black}</style>';
 const coverImageExists = fs.existsSync('images/cover.jpg');
 
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
 
 const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
-let coverImage;     
+let coverImage;
 
 const outDir = fs.existsSync('./' + outDirName);
 
@@ -100,6 +101,10 @@ function answersCallback(answers) {
 
     if (answers.sequential) {
         global.sequentialLinks = true;
+    }
+
+    if (answers.ssml) {
+        global.ssml = true;
     }
 
     if (answers.googleAnalyticsID && answers.googleAnalyticsID !== '') {
@@ -145,15 +150,14 @@ function answersCallback(answers) {
 
 }
 
-
 function askTheQuestions() {
-  
+
     inquirer.prompt([{
         'name': 'title',
-        'message': 'What\'s the title of your project?'
+        'message': 'What title should appear on the index page?'
     }, {
         'name': 'subtitle',
-        'message': 'Does your project have a subtitle?'
+        'message': 'What subtitle should appear below?'
     }, {
         'type': 'confirm',
         'name': 'words',
@@ -163,15 +167,20 @@ function askTheQuestions() {
         'type': 'confirm',
         'name': 'alphabetical',
         'default': false,
-        'message': 'Alphebetize the links?'
+        'message': 'Should the links on the index page be alphabetized?'
     }, {
         'type': 'confirm',
         'name': 'sequential',
         'default': false,
-        'message': 'Should your sheets link sequentially instead of back to index page?'
+        'message': 'Should each page link to the next page instead of back to index page?'
     }, {
-        'name' : 'googleAnalyticsID',
-        message : 'If you have a Google Analytics ID, Bloom will add a script on every page. Otherwise leave blank'
+        'type': 'confirm',
+        'name': 'ssml',
+        'default': false,
+        'message': 'Would you also like to generate a folder of SSML for using with Amazon Polly?'
+    }, {
+        'name': 'googleAnalyticsID',
+        message: 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
     }, {
         'type': 'confirm',
         'name': 'ftp',
@@ -202,7 +211,7 @@ if (isThereABloomFile) {
             answersCallback(global.bloomFileSettings);
 
         } else {
-                
+
             askTheQuestions();
 
         }
@@ -229,7 +238,7 @@ function makeFileAString(file) {
 
 }
 
- function numberWithCommas(x) {
+function numberWithCommas(x) {
     if (!x) {
         return '';
     }
@@ -246,11 +255,14 @@ if (!outDir) {
 
 }
 
-const ssmlDir = fs.existsSync('./' + outDirName + '/ssml');
+if (global.ssml) {
 
-if (!ssmlDir) {
+    const ssmlDir = fs.existsSync('./' + outDirName + '/ssml');
 
-    fs.mkdir('./' + outDirName + '/ssml'); //make an ssml folder
+    if (!ssmlDir) {
+        fs.mkdir('./' + outDirName + '/ssml'); //make an ssml folder
+    }
+
 }
 
 if (headerFileExists) {
@@ -272,7 +284,7 @@ if (analyticsFileExists) {
             global.googleAnalyticsScript = data;
         });
 
-} 
+}
 
 if (cssFileExists) {
     makeFileAString(cssFile).then((data) => {
@@ -301,7 +313,7 @@ function runProgram() {
             if (!imageFolderExists) {
                 fs.mkdir('./' + outDirName + '/images');
             }
-            
+
             fs.createReadStream('images/cover.jpg').pipe(fs.createWriteStream(outDirName + '/images/cover.jpg'));
 
             coverImage = '<img src = \'images/cover.jpg\' />';
@@ -342,17 +354,17 @@ function runProgram() {
 
             webTitle = webTitle.replace(new RegExp('#', 'g'), '');
             webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
-         
+
             let lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
 
             lastWebTitle = lastWebTitle.replace(new RegExp('#', 'g'), '');
             lastWebTitle = lastWebTitle.replace(new RegExp('\\.', 'g'), '-');
-          
+
             let nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
 
             nextWebTitle = nextWebTitle.replace(new RegExp('#', 'g'), '');
             nextWebTitle = nextWebTitle.replace(new RegExp('\\.', 'g'), '-');
-          
+
             if (title !== 'index' && title !== '') {
 
                 indexStr = hideThis ? indexStr : indexStr + '<li><a href = \'' + webTitle + '.html\'>' + title + '</a></li>';
@@ -389,33 +401,35 @@ function runProgram() {
                 });
 
 
-                //throw stripped versions in txt folder
+                if (global.ssml) {
 
-                let file = entities.decodeHTML(removeMD(splitter + finalText));
+                    let file = entities.decodeHTML(removeMD(splitter + finalText));
 
-                const prepend = '<speak>';
-                const append = '</speak>';
+                    const prepend = '<speak>';
+                    const append = '</speak>';
 
-                const authorOrNot = global.bloomFileSettings.author ? '<break time = "1s" /> by ' + global.bloomFileSettings.author + '<break time = "3s" />' : '<break time = "3s" />';
+                    const authorOrNot = global.bloomFileSettings.author ? '<break time = "1s" /> by ' + global.bloomFileSettings.author + '<break time = "3s" />' : '<break time = "3s" />';
 
-                file = file.replace(/\n\n/ , authorOrNot);
-                file = file.replace(/\n\n/g , '<break time = "1s" />');
-                file = file.replace(/--/g , '<break time = "800ms" />');
-                file = file.replace(/ - /g , '<break time = "800ms" />');
-                file = file.replace(/\n/g , '');
+                    file = file.replace(/\n\n/, authorOrNot);
+                    file = file.replace(/\n\n/g, '<break time = "1s" />');
+                    file = file.replace(/--/g, '<break time = "800ms" />');
+                    file = file.replace(/ - /g, '<break time = "800ms" />');
+                    file = file.replace(/\n/g, '');
 
-                file = prepend + file + append;
+                    file = prepend + file + append;
 
-                file = ssmlVal.correct(file);
+                    file = ssmlVal.correct(file);
 
-                fs.writeFile(outDirName + '/ssml/' + webTitle + '.xml', file, (err) => { 
+                    fs.writeFile(outDirName + '/ssml/' + webTitle + '.xml', file, (err) => {
 
-                    if (err) {
+                        if (err) {
 
-                        console.log('error2', err);
-                    }
+                            console.log('error2', err);
+                        }
 
-                });
+                    });
+
+                }
 
 
             }  //after making file, gather stuff for index file
