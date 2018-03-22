@@ -47,13 +47,13 @@ and "by 'your name'" will be inserted after the title with proper pauses.
 These files have been tested with [Amazon Polly](https://aws.amazon.com/polly/) 
 using [aws-tts](https://github.com/eheikes/aws-tts) to generate mp3 files of short stories.
 
-##FTP upload included
+### FTP upload included
 
 Now bloom-cli will ask you if you want your project uploaded, 
 and will ask you for FTP credentials. Use `ftp: true` in your `bloom.json` file.
 Bloom will still ask you for your credentials in this case, then upload your new site there.
 
-##I don't want to upload through the CLI
+### I don't want to upload through the CLI
 
 Open up FileZilla (or whatever FTP program people are using these days) and make a 
 folder on your server to copy the files from `index-bloomed` into. Then navigate there in 

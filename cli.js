@@ -32,6 +32,7 @@ global.googleAnalyticsID = '';
 global.googleAnalyticsScript = '';
 global.bloomFileSettings = {};
 global.useBloomFile = false;
+global.makeBloomFile = false;
 
 const userArgs = process.argv.slice(2);
 let fileToBloomFrom = userArgs[0];
@@ -56,6 +57,7 @@ if (isThereABloomFile) {
 const inputFile = fs.createReadStream(fileToBloomFrom);
 const analyticsFileExists = fs.existsSync(__dirname + '/analytics.html');
 const headerFileExists = fs.existsSync(__dirname + '/header.html');
+
 let headerFile = '';
 let analyticsFile = '';
 
@@ -80,14 +82,16 @@ const coverImageExists = fs.existsSync('images/cover.jpg');
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
 
 const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
+const ssmlFolderExists = fs.existsSync('./' + outDirName + '/ssml');
+
 let coverImage;
 
 const outDir = fs.existsSync('./' + outDirName);
 
 function answersCallback(answers) {
 
-    global.projectTitle = '<h1>' + answers.title + '</h1>';
-    global.projectSubtitle = '<h3>' + answers.subtitle + '</h3>';
+    global.projectTitle =  answers.title;
+    global.projectSubtitle = answers.subtitle;
 
     global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
 
@@ -109,6 +113,10 @@ function answersCallback(answers) {
 
     if (answers.googleAnalyticsID && answers.googleAnalyticsID !== '') {
         global.googleAnalyticsID = answers.googleAnalyticsID;
+    }
+
+    if (answers.makeBloomFile) {
+        global.makeBloomFile = true;
     }
 
     if (answers.ftp) {
@@ -157,7 +165,7 @@ function askTheQuestions() {
         'message': 'What title should appear on the index page?'
     }, {
         'name': 'subtitle',
-        'message': 'What subtitle should appear below?'
+        'message': 'What subtitle should appear below the title?'
     }, {
         'type': 'confirm',
         'name': 'words',
@@ -181,7 +189,14 @@ function askTheQuestions() {
     }, {
         'name': 'googleAnalyticsID',
         message: 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
-    }, {
+    },
+    { 
+        'type': 'confirm',
+        'name': 'makeBloomFile',
+        'default': false,
+        message: 'Should Bloom create (or overwrite an existing) bloom.json file in this folder, with these answers?'
+    },
+    {
         'type': 'confirm',
         'name': 'ftp',
         'default': false,
@@ -193,7 +208,6 @@ function askTheQuestions() {
     });
 
 }
-
 
 if (isThereABloomFile) {
 
@@ -225,17 +239,35 @@ if (isThereABloomFile) {
 }
 
 function makeFileAString(file) {
-
-    const deferred = q.defer(); // make a new deferred object so we can chain some shit
+// make a new deferred object so we can chain
+    const deferred = q.defer(); 
 
     file.pipe(concatStream((data) => {
 
-        deferred.resolve(data.toString()); //resolve the deferred object and make it fill with the data
+        deferred.resolve(data.toString());
 
     }));
 
-    return deferred.promise; //output our data
+    return deferred.promise;
 
+}
+
+function generateBloomFile() {
+ 
+    const file = bloomfile;
+    const obj = {
+        title: global.projectTitle,
+        author: global.author,
+        subtitle: global.projectSubtitle,
+        words : global.showWords,
+        alphabetical : global.alphabetical, 
+        sequential : global.sequentialLinks,
+        ssml: global.ssml,
+        ftp : global.ftp,
+        googleAnalyticsID : global.googleAnalyticsId
+    };
+
+    jsonfile.writeFile(file, obj, {spaces: 2, EOL: '\n'});
 }
 
 function numberWithCommas(x) {
@@ -245,13 +277,11 @@ function numberWithCommas(x) {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-
-
 // HERE IS WHERE OUR PROGRAM STARTS
 
 if (!outDir) {
-
-    fs.mkdir('./' + outDirName); //make a folder
+//make a folder
+    fs.mkdir('./' + outDirName); 
 
 }
 
@@ -260,7 +290,7 @@ if (global.ssml) {
     const ssmlDir = fs.existsSync('./' + outDirName + '/ssml');
 
     if (!ssmlDir) {
-        fs.mkdir('./' + outDirName + '/ssml'); //make an ssml folder
+        fs.mkdir('./' + outDirName + '/ssml');
     }
 
 }
@@ -300,6 +330,10 @@ if (cssFileExists) {
 
 function runProgram() {
 
+    if (global.makeBloomFile) {
+        generateBloomFile(); // before anything else, generate a bloomfile if we're supposed to
+    }
+
     makeFileAString(inputFile).then((data) => {
 
         const splitter = '<h1>'; // we could have this be a prompted answer
@@ -322,6 +356,12 @@ function runProgram() {
             coverImage = '';
         }
 
+        if (!ssmlFolderExists && global.ssml) {
+            if (!imageFolderExists) {
+                fs.mkdir('./' + outDirName + '/images');
+            }
+        }
+
         const datetime = new Date();
 
         const commentDate = '<!-- Generated on ' + datetime + ' with bloom-cli -->';
@@ -340,7 +380,6 @@ function runProgram() {
             let hideThis = false;
             let nextTitle = next < textArray.length ? textArray[next].split('</h1>')[0] : 'index';
             let lastTitle = last > 0 ? textArray[last].split('</h1>')[0] : '';
-
 
             if (title.indexOf('%') > -1) {
                 hideThis = true;
@@ -487,7 +526,7 @@ function runProgram() {
 
         const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
-        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + global.projectTitle + global.projectSubtitle + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>'), (err) => {
+        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + '<h1>' + global.projectTitle + '</h1> <h3>' + global.projectSubtitle + '</h3>' + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>'), (err) => {
 
             if (err) {
 
