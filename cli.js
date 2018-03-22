@@ -19,6 +19,7 @@ global.headerString = '';
 global.headerMarkup = '';
 global.projectTitle = '';
 global.projectSubtitle = '';
+global.projectAuthor = '';
 global.sequentialLinks = false;
 global.showWords = false;
 global.alphabetical = false;
@@ -76,7 +77,7 @@ if (cssFileExists) {
     cssFile = fs.createReadStream('css/style.css');
 }
 
-const indexStyles = '<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} li {color:#aaa;} a {color:#444;} a:visited{color:black}</style>';
+const indexStyles = '<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} li {color:#aaa;} a {color:#444;} a:visited{color:black} h5 {font-size:26px;}</style>';
 const coverImageExists = fs.existsSync('images/cover.jpg');
 
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
@@ -92,6 +93,7 @@ function answersCallback(answers) {
 
     global.projectTitle =  answers.title;
     global.projectSubtitle = answers.subtitle;
+    global.projectAuthor = answers.author;
 
     global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
 
@@ -160,48 +162,54 @@ function answersCallback(answers) {
 
 function askTheQuestions() {
 
-    inquirer.prompt([{
-        'name': 'title',
-        'message': 'What title should appear on the index page?'
-    }, {
-        'name': 'subtitle',
-        'message': 'What subtitle should appear below the title?'
-    }, {
-        'type': 'confirm',
-        'name': 'words',
-        'default': false,
-        'message': 'Show word counts next to index links?'
-    }, {
-        'type': 'confirm',
-        'name': 'alphabetical',
-        'default': false,
-        'message': 'Should the links on the index page be alphabetized?'
-    }, {
-        'type': 'confirm',
-        'name': 'sequential',
-        'default': false,
-        'message': 'Should each page link to the next page instead of back to index page?'
-    }, {
-        'type': 'confirm',
-        'name': 'ssml',
-        'default': false,
-        'message': 'Would you also like to generate a folder of SSML for using with Amazon Polly?'
-    }, {
-        'name': 'googleAnalyticsID',
-        message: 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
-    },
-    { 
-        'type': 'confirm',
-        'name': 'makeBloomFile',
-        'default': false,
-        message: 'Should Bloom create (or overwrite an existing) bloom.json file in this folder, with these answers?'
-    },
-    {
-        'type': 'confirm',
-        'name': 'ftp',
-        'default': false,
-        'message': 'Bloom can upload your files for you, if you provide FTP details. Yeah?'
-    }], (answers) => {
+    inquirer.prompt([
+        {
+            'name': 'title',
+            'message': 'What title should appear on the index page?'
+        }, {
+            'name': 'subtitle',
+            'message': 'What subtitle should appear below the title?'
+        }, 
+        {
+            'name': 'author',
+            'message': 'Author name, if any?'
+        },
+        {
+            'type': 'confirm',
+            'name': 'words',
+            'default': false,
+            'message': 'Show word counts next to index links?'
+        }, {
+            'type': 'confirm',
+            'name': 'alphabetical',
+            'default': false,
+            'message': 'Should the links on the index page be alphabetized?'
+        }, {
+            'type': 'confirm',
+            'name': 'sequential',
+            'default': false,
+            'message': 'Should each page link to the next page instead of back to index page?'
+        }, {
+            'type': 'confirm',
+            'name': 'ssml',
+            'default': false,
+            'message': 'Would you also like to generate a folder of SSML for using with Amazon Polly?'
+        }, {
+            'name': 'googleAnalyticsID',
+            message: 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
+        },
+        { 
+            'type': 'confirm',
+            'name': 'makeBloomFile',
+            'default': false,
+            message: 'Should Bloom create (or overwrite an existing) bloom.json file in this folder, with these answers?'
+        },
+        {
+            'type': 'confirm',
+            'name': 'ftp',
+            'default': false,
+            'message': 'Bloom can upload your files for you, if you provide FTP details. Yeah?'
+        }], (answers) => {
 
         answersCallback(answers);
 
@@ -257,7 +265,7 @@ function generateBloomFile() {
     const file = bloomfile;
     const obj = {
         title: global.projectTitle,
-        author: global.author,
+        author: global.projectAuthor,
         subtitle: global.projectSubtitle,
         words : global.showWords,
         alphabetical : global.alphabetical, 
@@ -267,7 +275,7 @@ function generateBloomFile() {
         googleAnalyticsID : global.googleAnalyticsId
     };
 
-    jsonfile.writeFile(file, obj, {spaces: 2, EOL: '\n'});
+    jsonfile.writeFile(file, obj, { spaces: 2, EOL: '\n' });
 }
 
 function numberWithCommas(x) {
@@ -418,9 +426,9 @@ function runProgram() {
 
             const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
-            const finalText = textArray[i];
+            const finalText = global.projectAuthor !== '' ? textArray[i].replace('</h1>', '</h1><h3>by ' + global.projectAuthor + '</h3>')  : textArray[i];
 
-            const fileContents = backButton + splitter + finalText + nextButton + analytics + '</body></html>';
+            const fileContents = commentDate + backButton + splitter + finalText + nextButton + analytics + '</body></html>';
 
             const wordCount = finalText.split(' ').length;
 
@@ -447,9 +455,10 @@ function runProgram() {
                     const prepend = '<speak>';
                     const append = '</speak>';
 
-                    const authorOrNot = global.bloomFileSettings.author ? '<break time = "1s" /> by ' + global.bloomFileSettings.author + '<break time = "3s" />' : '<break time = "3s" />';
+                    const authorOrNot = global.projectAuthor ? 'by ' + global.projectAuthor : global.projectAuthor;
+                    const breakOrNot = global.projectAuthor ? '<break time = "1s" /> by ' + global.projectAuthor + '<break time = "3s" />' : '<break time = "3s" />';
 
-                    file = file.replace(/\n\n/, authorOrNot);
+                    file = file.replace(authorOrNot, breakOrNot);
                     file = file.replace(/\n\n/g, '<break time = "1s" />');
                     file = file.replace(/--/g, '<break time = "800ms" />');
                     file = file.replace(/ - /g, '<break time = "800ms" />');
@@ -526,7 +535,9 @@ function runProgram() {
 
         const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
-        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + '<h1>' + global.projectTitle + '</h1> <h3>' + global.projectSubtitle + '</h3>' + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>'), (err) => {
+        const projectAuthor = global.projectAuthor ? '<h5>by ' + global.projectAuthor + '</h5>' : '';
+
+        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + '<h1>' + global.projectTitle + '</h1> <h2>' + global.projectSubtitle + '</h2>' + projectAuthor + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>'), (err) => {
 
             if (err) {
 
