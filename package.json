@@ -1,6 +1,6 @@
 {
   "name": "bloom-cli",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Export a group of sheets from Ulysses and make a website out of them!",
   "scripts": {
     "test": ""
