@@ -1,6 +1,6 @@
 {
   "name": "bloom-cli",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Export a group of sheets from Ulysses and make a website out of them!",
   "scripts": {
     "test": ""
@@ -20,6 +20,7 @@
     "open": "0.0.5",
     "q": "~1.0.1",
     "striptags": "^3.0.1",
+    "typeset": "^0.2.2",
     "vinyl-fs": "^2.4.3",
     "vinyl-ftp": "^0.5.0"
   },

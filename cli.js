@@ -13,6 +13,7 @@ const jsonfile = require('jsonfile');
 const removeMD = require('remove-markdown');
 const entities = require('entities');
 const ssmlVal = require('ssml-validator');
+const typeset = require('typeset');
 const bloomfile = './bloom.json';
 
 global.headerString = '';
@@ -421,14 +422,16 @@ function runProgram() {
             const backButtonMarkup = global.sequentialLinks ? '<a class = \'button-back\' href = \'' + lastWebTitle + '.html\'>previous</a>' : '<a class = \'button-back\' href = \'index.html\'>back</a>';
             const nextButtonMarkup = global.sequentialLinks ? '<br><br><a class = \'button-next\' href = \'' + nextWebTitle + '.html\'>next</a>' : '<br><br><a class = \'button-next\' href = \'index.html\'>back</a>';
 
-            const backButton = title === 'index' || lastWebTitle.indexOf('%') > -1 ? '' : backButtonMarkup;
+            const backButton = title === 'index' || lastWebTitle.indexOf('%') > -1 && global.sequentialLinks ? '' : backButtonMarkup;
             const nextButton = title === 'index' || nextWebTitle.indexOf('%') > -1 ? '' : nextButtonMarkup;
 
             const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
             const finalText = global.projectAuthor !== '' ? textArray[i].replace('</h1>', '</h1><h3>by ' + global.projectAuthor + '</h3>')  : textArray[i];
 
-            const fileContents = commentDate + backButton + splitter + finalText + nextButton + analytics + '</body></html>';
+            let fileContents = commentDate + backButton + splitter + finalText + nextButton + analytics + '</body></html>';
+
+            fileContents = typeset(fileContents);
 
             const wordCount = finalText.split(' ').length;
 
