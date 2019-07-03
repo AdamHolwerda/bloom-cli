@@ -1,19 +1,20 @@
 #! /usr/bin/env node
 
-const fs = require('fs'); // get fileSystem
+const fs = require('fs-extra'); // get fileSystem
 const concatStream = require('concat-stream'); //put a streaming chunked file into one glob
 const q = require('q'); //so we can defer
 const inquirer = require('inquirer'); //so we can ask questions
 const open = require('open'); //so we can open files
-const htmlEncode = require('htmlencode').htmlEncode; //so we can make sure our links work
 const vinylFs = require('vinyl-fs');
 const striptags = require('striptags');
 const vinylFtp = require('vinyl-ftp');
-const jsonfile = require('jsonfile');
 const removeMD = require('remove-markdown');
 const entities = require('entities');
 const ssmlVal = require('ssml-validator');
 const typeset = require('typeset');
+const md5 = require('md5');
+const { replaceQuotes } = require('curly-q');
+
 const bloomfile = './bloom.json';
 
 global.headerString = '';
@@ -37,6 +38,7 @@ global.useBloomFile = false;
 global.makeBloomFile = false;
 
 const userArgs = process.argv.slice(2);
+
 let fileToBloomFrom = userArgs[0];
 
 if (!fileToBloomFrom) {
@@ -46,11 +48,10 @@ if (!fileToBloomFrom) {
 const isThereABloomFile = fs.existsSync(bloomfile);
 
 if (isThereABloomFile) {
-    global.bloomFileSettings = jsonfile.readFile(bloomfile, (error, data) => {
+    global.bloomFileSettings = fs.readJson(bloomfile, (error, data) => {
 
         if (error) {
-            console.log(error)
-            ;
+            console.log(error);
         }
         global.bloomFileSettings = data;
     });
@@ -61,6 +62,7 @@ const analyticsFileExists = fs.existsSync(__dirname + '/analytics.html');
 const headerFileExists = fs.existsSync(__dirname + '/header.html');
 
 let headerFile = '';
+
 let analyticsFile = '';
 
 if (headerFileExists) {
@@ -72,6 +74,7 @@ if (analyticsFileExists) {
 }
 
 const cssFileExists = fs.existsSync('css/style.css');
+
 let cssFile;
 
 if (cssFileExists) {
@@ -84,11 +87,8 @@ const coverImageExists = fs.existsSync('images/cover.jpg');
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
 
 const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
-const ssmlFolderExists = fs.existsSync('./' + outDirName + '/ssml');
 
 let coverImage;
-
-const outDir = fs.existsSync('./' + outDirName);
 
 function answersCallback(answers) {
 
@@ -114,7 +114,7 @@ function answersCallback(answers) {
         global.ssml = true;
     }
 
-    if (answers.googleAnalyticsID && answers.googleAnalyticsID !== '') {
+    if (answers.googleAnalyticsID !== '') {
         global.googleAnalyticsID = answers.googleAnalyticsID;
     }
 
@@ -197,13 +197,13 @@ function askTheQuestions() {
             'message': 'Would you also like to generate a folder of SSML for using with Amazon Polly?'
         }, {
             'name': 'googleAnalyticsID',
-            message: 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
+            'message': 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
         },
         { 
             'type': 'confirm',
             'name': 'makeBloomFile',
             'default': false,
-            message: 'Should Bloom create (or overwrite an existing) bloom.json file in this folder, with these answers?'
+            'message': 'Should Bloom create (or overwrite an existing) bloom.json file in this folder, with these answers?'
         },
         {
             'type': 'confirm',
@@ -276,7 +276,54 @@ function generateBloomFile() {
         googleAnalyticsID : global.googleAnalyticsId
     };
 
-    jsonfile.writeFile(file, obj, { spaces: 2, EOL: '\n' });
+    fs.writeJson(file, obj, { spaces: 2 }, (err) => {
+        if (err) {
+            console.log(err);
+        }
+    });
+}
+
+function collectImages(string) {
+    //there might be linked images in the text, collect them
+    //copy them to the index-bloomed folder
+    const imgGex = /([a-z\-_0-9/:.]*\.(jpg|jpeg|png|gif))/gi;
+
+    const images = string.match(imgGex);
+
+    images.forEach((img) => {
+        fs.copy('./' + img, outDirName + '/' + img, (err) => {
+            console.log(err);
+        });
+    });
+
+}
+
+function toWebTitle(string, contents) {
+
+    if (typeof string === 'string') {
+
+        const titleHash = md5(contents);
+
+        if (string === '') {
+            return titleHash;
+        }
+
+        let webTitle = string.toLowerCase();
+        
+        webTitle = webTitle.replace(new RegExp(' ', 'g'), '-');
+        webTitle = webTitle.replace(new RegExp('#', 'g'), '');
+        webTitle = webTitle.replace(new RegExp(',', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('\\.', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('\'', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('\\(', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('\\)', 'g'), '');
+     
+        return webTitle + titleHash;
+
+    } else {
+        throw 'toWebTitle expects a string';
+    }
+
 }
 
 function numberWithCommas(x) {
@@ -286,23 +333,12 @@ function numberWithCommas(x) {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-// HERE IS WHERE OUR PROGRAM STARTS
+//PROGRAM STARTS
 
-if (!outDir) {
 //make a folder
-    fs.mkdir('./' + outDirName); 
-
-}
-
-if (global.ssml) {
-
-    const ssmlDir = fs.existsSync('./' + outDirName + '/ssml');
-
-    if (!ssmlDir) {
-        fs.mkdir('./' + outDirName + '/ssml');
-    }
-
-}
+fs.ensureDir('./' + outDirName, (err) => {
+    console.log(err);
+}); 
 
 if (headerFileExists) {
 
@@ -328,10 +364,8 @@ if (analyticsFileExists) {
 if (cssFileExists) {
     makeFileAString(cssFile).then((data) => {
 
-        fs.writeFile(outDirName + '/style.css', data, (err) => {
-            if (err) {
-                console.log('error', err);
-            }
+        fs.outputFile(outDirName + '/style.css', data, (err) => {
+            console.log(err);
         });
 
     });
@@ -347,6 +381,8 @@ function runProgram() {
 
         const splitter = '<h1>'; // we could have this be a prompted answer
 
+        collectImages(data);
+
         const textArray = data.split(splitter);
 
         const includeInIndex = '';
@@ -354,7 +390,9 @@ function runProgram() {
         if (coverImageExists) {
 
             if (!imageFolderExists) {
-                fs.mkdir('./' + outDirName + '/images');
+                fs.ensureDir('./' + outDirName + '/images', (err) => {
+                    console.log(err);
+                });
             }
 
             fs.createReadStream('images/cover.jpg').pipe(fs.createWriteStream(outDirName + '/images/cover.jpg'));
@@ -365,9 +403,17 @@ function runProgram() {
             coverImage = '';
         }
 
-        if (!ssmlFolderExists && global.ssml) {
+        if (global.ssml) {
+
+            fs.ensureDir('./' + outDirName + '/ssml', (err) => {
+                console.log(err);
+            });
+
+
             if (!imageFolderExists) {
-                fs.mkdir('./' + outDirName + '/images');
+                fs.ensureDir('./' + outDirName + '/images', (err) => {
+                    console.log(err);
+                });
             }
         }
 
@@ -386,8 +432,11 @@ function runProgram() {
             const last = i - 1;
 
             let title = i > 0 ? textArray[i].split('</h1>')[0] : 'index';
+
             let hideThis = false;
+
             let nextTitle = next < textArray.length ? textArray[next].split('</h1>')[0] : 'index';
+
             let lastTitle = last > 0 ? textArray[last].split('</h1>')[0] : '';
 
             if (title.indexOf('%') > -1) {
@@ -398,29 +447,20 @@ function runProgram() {
             lastTitle = striptags(lastTitle);
             nextTitle = striptags(nextTitle);
 
-            let webTitle = title.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+            const webTitle = toWebTitle(title, textArray[i]);
 
-            webTitle = webTitle.replace(new RegExp('#', 'g'), '');
-            webTitle = webTitle.replace(new RegExp('\\.', 'g'), '-');
+            const lastWebTitle = lastTitle !== '' ?  toWebTitle(lastTitle, textArray[last]) : '';
 
-            let lastWebTitle = lastTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
+            const nextWebTitle = nextTitle !== 'index' ? toWebTitle(nextTitle, textArray[next]) : '';
 
-            lastWebTitle = lastWebTitle.replace(new RegExp('#', 'g'), '');
-            lastWebTitle = lastWebTitle.replace(new RegExp('\\.', 'g'), '-');
+            if (title !== 'index') {
 
-            let nextWebTitle = nextTitle.toLowerCase().replace(new RegExp(' ', 'g'), '-');
-
-            nextWebTitle = nextWebTitle.replace(new RegExp('#', 'g'), '');
-            nextWebTitle = nextWebTitle.replace(new RegExp('\\.', 'g'), '-');
-
-            if (title !== 'index' && title !== '') {
-
-                indexStr = hideThis ? indexStr : indexStr + '<li><a href = \'' + webTitle + '.html\'>' + title + '</a></li>';
+                indexStr = hideThis ? indexStr : indexStr + '<li><a href ="' + webTitle + '".html>' + title + '</a></li>';
 
             }
 
-            const backButtonMarkup = global.sequentialLinks ? '<a class = \'button-back\' href = \'' + lastWebTitle + '.html\'>previous</a>' : '<a class = \'button-back\' href = \'index.html\'>back</a>';
-            const nextButtonMarkup = global.sequentialLinks ? '<br><br><a class = \'button-next\' href = \'' + nextWebTitle + '.html\'>next</a>' : '<br><br><a class = \'button-next\' href = \'index.html\'>back</a>';
+            const backButtonMarkup = global.sequentialLinks && lastWebTitle !== '' ? `<br><br><a class ='button-back' href = 'index.html'>home</a><br><br><a class = 'button-back' href = '${lastWebTitle}.html'>previous</a>` : '<br/><br/><a class = \'button-back\' href = \'index.html\'>back</a>';
+            const nextButtonMarkup = global.sequentialLinks && nextWebTitle !== '' ? `<br><br><a class = 'button-next' href = '${nextWebTitle}.html'>next</a><br/><br/><br/><br/>` : '<br><br><a class =\'button-next\' href = \'index.html\'>back</a><br><br><br/><br/>';
 
             const backButton = title === 'index' || lastWebTitle.indexOf('%') > -1 && global.sequentialLinks ? '' : backButtonMarkup;
             const nextButton = title === 'index' || nextWebTitle.indexOf('%') > -1 ? '' : nextButtonMarkup;
@@ -431,17 +471,21 @@ function runProgram() {
 
             let fileContents = commentDate + backButton + splitter + finalText + nextButton + analytics + '</body></html>';
 
+            fileContents = fileContents.replace(/\?“/g, '?"');
+            fileContents = replaceQuotes(fileContents);
             fileContents = typeset(fileContents);
 
             const wordCount = finalText.split(' ').length;
 
             //spit out the file in this next part
 
-            if (title !== 'index' && !hideThis) {
+            if (title !== 'index' && !hideThis && webTitle !== '') {
 
                 const thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
 
-                fs.writeFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, (err) => { // this is htmlencoding automatically so we don't do it here
+                fs.outputFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, (err) => { 
+                    
+                    // this is htmlencoding automatically so we don't do it here
 
                     if (err) {
 
@@ -471,11 +515,11 @@ function runProgram() {
 
                     file = ssmlVal.correct(file);
 
-                    fs.writeFile(outDirName + '/ssml/' + webTitle + '.xml', file, (err) => {
+                    fs.outputFile(outDirName + '/ssml/' + webTitle + '.xml', file, (err) => {
 
                         if (err) {
 
-                            console.log('error2', err);
+                            console.log(err);
                         }
 
                     });
@@ -524,6 +568,7 @@ function runProgram() {
             }
 
             const nonWebTitle = one.split(' (');
+
             let webTitleTwo = webTitleArray[j];
 
             webTitleTwo = webTitleTwo.split('-(');
@@ -540,7 +585,9 @@ function runProgram() {
 
         const projectAuthor = global.projectAuthor ? '<h5>by ' + global.projectAuthor + '</h5>' : '';
 
-        fs.writeFile(outDirName + '/index.html', (global.headerMarkup + indexStyles + coverImage + '<h1>' + global.projectTitle + '</h1> <h2>' + global.projectSubtitle + '</h2>' + projectAuthor + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>'), (err) => {
+        const finalFile = (global.headerMarkup + indexStyles + coverImage + '<h1>' + global.projectTitle + '</h1> <h2>' + global.projectSubtitle + '</h2>' + projectAuthor + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>');
+
+        fs.outputFile(outDirName + '/index.html', finalFile , (err) => {
 
             if (err) {
 

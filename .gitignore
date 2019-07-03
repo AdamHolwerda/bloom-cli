@@ -2,3 +2,8 @@ node_modules
 index.html
 index-bloomed
 bloom.json
+.DS_Store
+*.png
+*.jpg
+*.gif
+*.jpeg
