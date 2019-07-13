@@ -34,7 +34,17 @@ global.remotePath = '';
 global.ssml = false;
 global.mp3 = false;
 global.googleAnalyticsID = '';
-global.googleAnalyticsScript = '';
+global.googleAnalyticsScript = `<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'bloom-googleAnalyticsID', 'auto');
+ga('send', 'pageview');
+
+</script>`;
+
 global.bloomFileSettings = {};
 global.useBloomFile = false;
 global.makeBloomFile = false;
@@ -50,30 +60,26 @@ if (!fileToBloomFrom) {
 const isThereABloomFile = fs.existsSync(bloomfile);
 
 if (isThereABloomFile) {
-    global.bloomFileSettings = fs.readJson(bloomfile, (error, data) => {
+    fs.readJson(bloomfile, (error, data) => {
 
         if (error) {
             console.log(error);
         }
-        global.bloomFileSettings = data;
+        
+        Object.assign(global.bloomFileSettings, data);
+
     });
 }
 
 const inputFile = fs.createReadStream(fileToBloomFrom);
-const analyticsFileExists = fs.existsSync(__dirname + '/analytics.html');
 const headerFileExists = fs.existsSync(__dirname + '/header.html');
 
 let headerFile = '';
-
-let analyticsFile = '';
 
 if (headerFileExists) {
     headerFile = fs.createReadStream(__dirname + '/header.html');
 }
 
-if (analyticsFileExists) {
-    analyticsFile = fs.createReadStream(__dirname + '/analytics.html');
-}
 
 const cssFileExists = fs.existsSync('css/style.css');
 
@@ -94,18 +100,22 @@ let coverImage;
 
 function answersCallback(answers) {
 
+console.log(answers);
+
     global.projectTitle =  answers.title;
     global.projectSubtitle = answers.subtitle;
     global.projectAuthor = answers.author;
     global.mp3 = answers.mp3;
-    global.googleAnalyticsId = answers.googleAnalyticsId;
+    global.googleAnalyticsID = answers.googleAnalyticsID;
     global.words = answers.words;
     global.ssml = answers.ssml;
-    global.sequentialLinks = answers.sequentialLinks;
+    global.sequentialLinks = answers.sequential;
     global.makeBloomFile = answers.makeBloomFile;
     global.ftp = answers.ftp;
 
     global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
+
+console.log(global);
 
     if (answers.ftp) {
 
@@ -187,6 +197,8 @@ function askTheQuestions() {
         },
         {
             'name': 'googleAnalyticsID',
+            'type':'input',
+            'default': '',
             'message': 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
         },
         { 
@@ -264,7 +276,7 @@ function generateBloomFile() {
         ssml: global.ssml,
         mp3: global.mp3,
         ftp : global.ftp,
-        googleAnalyticsID : global.googleAnalyticsId
+        googleAnalyticsID : global.googleAnalyticsID
     };
 
     fs.writeJson(file, obj, { spaces: 2 }, (err) => {
@@ -312,7 +324,7 @@ function toWebTitle(string, contents) {
         webTitle = webTitle.replace(new RegExp('\\)', 'g'), '');
         webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
         webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
-        
+
         return webTitle + titleHash;
 
     } else {
@@ -345,15 +357,6 @@ if (headerFileExists) {
 
 } else {
     console.log('There is no header file');
-}
-
-if (analyticsFileExists) {
-
-    makeFileAString(analyticsFile)
-        .then((data) => {
-            global.googleAnalyticsScript = data;
-        });
-
 }
 
 if (cssFileExists) {
@@ -414,6 +417,7 @@ function runProgram() {
 
         const titleArray = [];
         const webTitleArray = [];
+        const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
         for (let i = 0; i < textArray.length; i++) {
 
@@ -455,8 +459,6 @@ function runProgram() {
             const backButton = title === 'index' || lastWebTitle.indexOf('%') > -1 && global.sequentialLinks ? '' : backButtonMarkup;
             const nextButton = title === 'index' || nextWebTitle.indexOf('%') > -1 ? '' : nextButtonMarkup;
 
-            const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
-
             let finalText = global.projectAuthor !== '' ? textArray[i].replace('</h1>', '</h1><h3>by ' + global.projectAuthor + '</h3>')  : textArray[i];
 
             let fileContents = commentDate + backButton + splitter + audioMarkup + finalText + nextButton + analytics + '</body></html>';
@@ -471,6 +473,7 @@ function runProgram() {
             if (title !== 'index' && !hideThis && webTitle !== '') {
 
                 const thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
+
 
                 fs.outputFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, (err) => { 
                     
@@ -612,7 +615,7 @@ function runProgram() {
 
         });
 
-        const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
+        
 
         const projectAuthor = global.projectAuthor ? '<h5>by ' + global.projectAuthor + '</h5>' : '';
 
