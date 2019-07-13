@@ -1,6 +1,6 @@
 {
   "name": "bloom-cli",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Export a group of sheets from Ulysses and make a website out of them!",
   "scripts": {
     "test": ""
@@ -23,7 +23,7 @@
     "open": "^6.4.0",
     "q": "~1.0.1",
     "remove-markdown": "^0.2.2",
-    "shelljs": "^0.8.1",
+    "shelljs": "^0.8.3",
     "ssml-validator": "^0.1.0",
     "striptags": "^3.0.1",
     "typeset": "^0.2.2",
