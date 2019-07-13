@@ -99,9 +99,6 @@ const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
 let coverImage;
 
 function answersCallback(answers) {
-
-console.log(answers);
-
     global.projectTitle =  answers.title;
     global.projectSubtitle = answers.subtitle;
     global.projectAuthor = answers.author;
@@ -114,8 +111,6 @@ console.log(answers);
     global.ftp = answers.ftp;
 
     global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
-
-console.log(global);
 
     if (answers.ftp) {
 
@@ -538,7 +533,11 @@ function runProgram() {
 
                                         let femaleNarrator = false;
 
-                                        if (file.match(/ she /gi).length > file.match(/ he /gi).length) {
+                                        const howManyIs = file.match(/ i /gi) !== null ? file.match(/ i /gi).length : 0;
+                                        const howManyHes = file.match(/ he /gi) !== null ? file.match(/ he /gi).length : 0;
+                                        const howManyShes = file.match(/ she /gi) !== null ? file.match(/ she /gi).length : 0;
+
+                                        if (howManyIs < howManyShes && howManyShes > howManyHes) {
                                             femaleNarrator = true;
                                         }
                     
@@ -625,7 +624,7 @@ function runProgram() {
 
             if (err) {
 
-                console.log('error3', err);
+                console.log(err);
             }
 
             //launch the static site in the user's browser
