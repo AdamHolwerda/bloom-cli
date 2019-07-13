@@ -14,6 +14,7 @@ const ssmlVal = require('ssml-validator');
 const typeset = require('typeset');
 const md5 = require('md5');
 const { replaceQuotes } = require('curly-q');
+const shell = require('shelljs');
 
 const bloomfile = './bloom.json';
 
@@ -31,8 +32,19 @@ global.username = '';
 global.password = '';
 global.remotePath = '';
 global.ssml = false;
+global.mp3 = false;
 global.googleAnalyticsID = '';
-global.googleAnalyticsScript = '';
+global.googleAnalyticsScript = `<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'bloom-googleAnalyticsID', 'auto');
+ga('send', 'pageview');
+
+</script>`;
+
 global.bloomFileSettings = {};
 global.useBloomFile = false;
 global.makeBloomFile = false;
@@ -48,30 +60,26 @@ if (!fileToBloomFrom) {
 const isThereABloomFile = fs.existsSync(bloomfile);
 
 if (isThereABloomFile) {
-    global.bloomFileSettings = fs.readJson(bloomfile, (error, data) => {
+    fs.readJson(bloomfile, (error, data) => {
 
         if (error) {
             console.log(error);
         }
-        global.bloomFileSettings = data;
+        
+        Object.assign(global.bloomFileSettings, data);
+
     });
 }
 
 const inputFile = fs.createReadStream(fileToBloomFrom);
-const analyticsFileExists = fs.existsSync(__dirname + '/analytics.html');
 const headerFileExists = fs.existsSync(__dirname + '/header.html');
 
 let headerFile = '';
-
-let analyticsFile = '';
 
 if (headerFileExists) {
     headerFile = fs.createReadStream(__dirname + '/header.html');
 }
 
-if (analyticsFileExists) {
-    analyticsFile = fs.createReadStream(__dirname + '/analytics.html');
-}
 
 const cssFileExists = fs.existsSync('css/style.css');
 
@@ -92,39 +100,24 @@ let coverImage;
 
 function answersCallback(answers) {
 
+console.log(answers);
+
     global.projectTitle =  answers.title;
     global.projectSubtitle = answers.subtitle;
     global.projectAuthor = answers.author;
+    global.mp3 = answers.mp3;
+    global.googleAnalyticsID = answers.googleAnalyticsID;
+    global.words = answers.words;
+    global.ssml = answers.ssml;
+    global.sequentialLinks = answers.sequential;
+    global.makeBloomFile = answers.makeBloomFile;
+    global.ftp = answers.ftp;
 
     global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
 
-    if (answers.words) {
-        global.showWords = true;
-    }
-
-    if (answers.alphabetical) {
-        global.alphabetical = true;
-    }
-
-    if (answers.sequential) {
-        global.sequentialLinks = true;
-    }
-
-    if (answers.ssml) {
-        global.ssml = true;
-    }
-
-    if (answers.googleAnalyticsID !== '') {
-        global.googleAnalyticsID = answers.googleAnalyticsID;
-    }
-
-    if (answers.makeBloomFile) {
-        global.makeBloomFile = true;
-    }
+console.log(global);
 
     if (answers.ftp) {
-
-        global.ftp = true;
 
         inquirer.prompt([{
             'name': 'hostname',
@@ -195,8 +188,17 @@ function askTheQuestions() {
             'name': 'ssml',
             'default': false,
             'message': 'Would you also like to generate a folder of SSML for using with Amazon Polly?'
-        }, {
+        },
+        {
+            'type': 'confirm',
+            'name': 'mp3',
+            'default': false,
+            'message': 'Use SSML to make MP3s and add an audio player to each page?'
+        },
+        {
             'name': 'googleAnalyticsID',
+            'type':'input',
+            'default': '',
             'message': 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
         },
         { 
@@ -272,8 +274,9 @@ function generateBloomFile() {
         alphabetical : global.alphabetical, 
         sequential : global.sequentialLinks,
         ssml: global.ssml,
+        mp3: global.mp3,
         ftp : global.ftp,
-        googleAnalyticsID : global.googleAnalyticsId
+        googleAnalyticsID : global.googleAnalyticsID
     };
 
     fs.writeJson(file, obj, { spaces: 2 }, (err) => {
@@ -290,11 +293,13 @@ function collectImages(string) {
 
     const images = string.match(imgGex);
 
-    images.forEach((img) => {
-        fs.copy('./' + img, outDirName + '/' + img, (err) => {
-            console.log(err);
+    if (images !== null) {
+        images.forEach((img) => {
+            fs.copy('./' + img, outDirName + '/' + img, (err) => {
+                console.log(err);
+            });
         });
-    });
+    }
 
 }
 
@@ -314,10 +319,12 @@ function toWebTitle(string, contents) {
         webTitle = webTitle.replace(new RegExp('#', 'g'), '');
         webTitle = webTitle.replace(new RegExp(',', 'g'), '');
         webTitle = webTitle.replace(new RegExp('\\.', 'g'), '');
-        webTitle = webTitle.replace(new RegExp('\'', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('[\'’]', 'g'), '');
         webTitle = webTitle.replace(new RegExp('\\(', 'g'), '');
         webTitle = webTitle.replace(new RegExp('\\)', 'g'), '');
-     
+        webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
+        webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
+
         return webTitle + titleHash;
 
     } else {
@@ -352,15 +359,6 @@ if (headerFileExists) {
     console.log('There is no header file');
 }
 
-if (analyticsFileExists) {
-
-    makeFileAString(analyticsFile)
-        .then((data) => {
-            global.googleAnalyticsScript = data;
-        });
-
-}
-
 if (cssFileExists) {
     makeFileAString(cssFile).then((data) => {
 
@@ -377,6 +375,20 @@ function runProgram() {
         generateBloomFile(); // before anything else, generate a bloomfile if we're supposed to
     }
 
+    if (!imageFolderExists) {
+        fs.ensureDir('./' + outDirName + '/images', (err) => {
+            console.log(err);
+        });
+    }
+
+    if (global.ssml) {
+
+        fs.ensureDir('./' + outDirName + '/ssml', (err) => {
+            console.log(err);
+        });
+
+    }
+
     makeFileAString(inputFile).then((data) => {
 
         const splitter = '<h1>'; // we could have this be a prompted answer
@@ -389,32 +401,12 @@ function runProgram() {
 
         if (coverImageExists) {
 
-            if (!imageFolderExists) {
-                fs.ensureDir('./' + outDirName + '/images', (err) => {
-                    console.log(err);
-                });
-            }
-
             fs.createReadStream('images/cover.jpg').pipe(fs.createWriteStream(outDirName + '/images/cover.jpg'));
 
             coverImage = '<img src = \'images/cover.jpg\' />';
 
         } else {
             coverImage = '';
-        }
-
-        if (global.ssml) {
-
-            fs.ensureDir('./' + outDirName + '/ssml', (err) => {
-                console.log(err);
-            });
-
-
-            if (!imageFolderExists) {
-                fs.ensureDir('./' + outDirName + '/images', (err) => {
-                    console.log(err);
-                });
-            }
         }
 
         const datetime = new Date();
@@ -425,6 +417,7 @@ function runProgram() {
 
         const titleArray = [];
         const webTitleArray = [];
+        const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
 
         for (let i = 0; i < textArray.length; i++) {
 
@@ -461,17 +454,15 @@ function runProgram() {
 
             const backButtonMarkup = global.sequentialLinks && lastWebTitle !== '' ? `<br><br><a class ='button-back' href = 'index.html'>home</a><br><br><a class = 'button-back' href = '${lastWebTitle}.html'>previous</a>` : '<br/><br/><a class = \'button-back\' href = \'index.html\'>back</a>';
             const nextButtonMarkup = global.sequentialLinks && nextWebTitle !== '' ? `<br><br><a class = 'button-next' href = '${nextWebTitle}.html'>next</a><br/><br/><br/><br/>` : '<br><br><a class =\'button-next\' href = \'index.html\'>back</a><br><br><br/><br/>';
+            const audioMarkup = global.mp3 ? `<audio controls src='ssml/${webTitle}.mp3' type="audio/mp3" style = 'width:100%;'><p><a href="ssml/${webTitle}.mp3"></a></p></audio><br/><br/>` : '';
 
             const backButton = title === 'index' || lastWebTitle.indexOf('%') > -1 && global.sequentialLinks ? '' : backButtonMarkup;
             const nextButton = title === 'index' || nextWebTitle.indexOf('%') > -1 ? '' : nextButtonMarkup;
 
-            const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
+            let finalText = global.projectAuthor !== '' ? textArray[i].replace('</h1>', '</h1><h3>by ' + global.projectAuthor + '</h3>')  : textArray[i];
 
-            const finalText = global.projectAuthor !== '' ? textArray[i].replace('</h1>', '</h1><h3>by ' + global.projectAuthor + '</h3>')  : textArray[i];
+            let fileContents = commentDate + backButton + splitter + audioMarkup + finalText + nextButton + analytics + '</body></html>';
 
-            let fileContents = commentDate + backButton + splitter + finalText + nextButton + analytics + '</body></html>';
-
-            fileContents = fileContents.replace(/\?“/g, '?"');
             fileContents = replaceQuotes(fileContents);
             fileContents = typeset(fileContents);
 
@@ -483,19 +474,20 @@ function runProgram() {
 
                 const thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
 
+
                 fs.outputFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, (err) => { 
                     
                     // this is htmlencoding automatically so we don't do it here
 
                     if (err) {
-
-                        console.log('error2', err);
+                        console.log(err);
                     }
 
                 });
 
-
                 if (global.ssml) {
+
+                    finalText = finalText.replace(new RegExp(/<br\/>/, 'g'), '-BREAKSPACE-');
 
                     let file = entities.decodeHTML(removeMD(splitter + finalText));
 
@@ -505,23 +497,65 @@ function runProgram() {
                     const authorOrNot = global.projectAuthor ? 'by ' + global.projectAuthor : global.projectAuthor;
                     const breakOrNot = global.projectAuthor ? '<break time = "1s" /> by ' + global.projectAuthor + '<break time = "3s" />' : '<break time = "3s" />';
 
-                    file = file.replace(authorOrNot, breakOrNot);
-                    file = file.replace(/\n\n/g, '<break time = "1s" />');
-                    file = file.replace(/--/g, '<break time = "800ms" />');
-                    file = file.replace(/ - /g, '<break time = "800ms" />');
-                    file = file.replace(/\n/g, '');
+                    file = file.replace(new RegExp(authorOrNot, 'i'), breakOrNot);
+
+                    file = file.replace(new RegExp(/-BREAKSPACE-/, 'g'), '<break time = "1s" />');
+
+                    file = file.replace(new RegExp(/\n\n/, 'g'), '<break time = "1s" />');
+                    file = file.replace(new RegExp(/ -- /, 'g'), '<break time = "800ms" />');
+                    file = file.replace(new RegExp(/ - /, 'g'), '<break time = "800ms" />');
+                    file = file.replace(new RegExp(/ – /, 'g'), '<break time = "800ms" />');
+                    file = file.replace(new RegExp(/\n/, 'g'), '<break time = "800ms" />');
+                    file = file.replace(new RegExp(/\? /, 'g'), '?<break time = "500ms" />');
+                    file = file.replace(new RegExp(/\.\.\./, 'g'), '?<break time = "1200ms" />');
 
                     file = prepend + file + append;
 
                     file = ssmlVal.correct(file);
 
-                    fs.outputFile(outDirName + '/ssml/' + webTitle + '.xml', file, (err) => {
+                    fs.outputFile(outDirName + '/ssml/' + webTitle + '.xml', file,  (err) => {
 
                         if (err) {
-
                             console.log(err);
-                        }
+                        } else {
 
+                            fs.pathExists(outDirName + '/ssml/' + webTitle + '.mp3', (err, exists) => {
+                             
+                                if (err) {
+                                    console.log(err);
+                                }
+
+                                //if the path exists, we already have an mp3 of this version, don't need to make a new one
+                                if (!exists) {
+
+                                    if (!shell.which('tts')) {
+                                        //if the user doesn't have tts, we shouldn't try to do this.
+                                        
+                                        shell.echo('You need the tts package to create MP3s.');
+                                        shell.exit(1);
+        
+                                    } else {
+
+                                        let femaleNarrator = false;
+
+                                        if (file.match(/ she /gi).length > file.match(/ he /gi).length) {
+                                            femaleNarrator = true;
+                                        }
+                    
+                                        const genderFlag = femaleNarrator ? '--voice Joanna' : '--voice Matthew';
+        
+                                        //path doesn't exist, user has tts, make mp3 file
+        
+                                        shell.exec(`tts ${outDirName}/ssml/${webTitle}.xml ${outDirName}/ssml/${webTitle}.mp3 --type ssml --sample-rate 16000 ${genderFlag}`);
+        
+                                    }
+
+                                }
+
+                            });
+                            
+                        }
+                        
                     });
 
                 }
@@ -581,7 +615,7 @@ function runProgram() {
 
         });
 
-        const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
+        
 
         const projectAuthor = global.projectAuthor ? '<h5>by ' + global.projectAuthor + '</h5>' : '';
 
