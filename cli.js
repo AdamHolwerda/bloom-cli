@@ -317,6 +317,7 @@ function toWebTitle(string, contents) {
         webTitle = webTitle.replace(new RegExp('[\'’]', 'g'), '');
         webTitle = webTitle.replace(new RegExp('\\(', 'g'), '');
         webTitle = webTitle.replace(new RegExp('\\)', 'g'), '');
+        webTitle = webTitle.replace(new RegExp(':', 'g'), '');
         webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
         webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
 
