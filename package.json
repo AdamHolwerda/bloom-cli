@@ -3,7 +3,8 @@
   "version": "0.4.4",
   "description": "Export a group of sheets from Ulysses and make a website out of them!",
   "scripts": {
-    "test": ""
+    "test": "",
+    "run": "node cli.js"
   },
   "repository": "AdamHolwerda/bloom-cli",
   "author": "Adam Holwerda",
