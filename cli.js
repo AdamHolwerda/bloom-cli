@@ -1,5 +1,7 @@
 #! /usr/bin/env node
 
+import { collectImages } from 'funcs/collectImages';
+
 const fs = require('fs-extra'); // get fileSystem
 const concatStream = require('concat-stream'); //put a streaming chunked file into one glob
 const q = require('q'); //so we can defer
@@ -39,10 +41,8 @@ global.googleAnalyticsScript = `<script>
 (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
 m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
 })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-
 ga('create', 'bloom-googleAnalyticsID', 'auto');
 ga('send', 'pageview');
-
 </script>`;
 
 global.bloomFileSettings = {};
@@ -285,22 +285,6 @@ function generateBloomFile() {
     });
 }
 
-function collectImages(string) {
-    //there might be linked images in the text, collect them
-    //copy them to the index-bloomed folder
-    const imgGex = /([a-z\-_0-9/:.]*\.(jpg|jpeg|png|gif))/gi;
-
-    const images = string.match(imgGex);
-
-    if (images !== null) {
-        images.forEach((img) => {
-            fs.copy('./' + img, outDirName + '/' + img, (err) => {
-                console.log(err);
-            });
-        });
-    }
-}
-
 function toWebTitle(string, contents) {
     if (typeof string === 'string') {
         const titleHash = md5(contents);
@@ -378,7 +362,15 @@ function runProgram() {
     makeFileAString(inputFile).then((data) => {
         const splitter = '<h1>'; // we could have this be a prompted answer
 
-        collectImages(data);
+        const images = collectImages(data);
+
+        if (images !== null) {
+            images.forEach((img) => {
+                fs.copy('./' + img, outDirName + '/' + img, (err) => {
+                    console.log(err);
+                });
+            });
+        }
 
         const textArray = data.split(splitter);
 
@@ -406,9 +398,9 @@ function runProgram() {
         const analytics =
             global.googleAnalyticsID !== ''
                 ? global.googleAnalyticsScript.replace(
-                      'bloom-googleAnalyticsID',
-                      global.googleAnalyticsID
-                  )
+                    'bloom-googleAnalyticsID',
+                    global.googleAnalyticsID
+                )
                 : '';
 
         for (let i = 0; i < textArray.length; i++) {
@@ -448,11 +440,11 @@ function runProgram() {
                 indexStr = hideThis
                     ? indexStr
                     : indexStr +
-                      '<li><a href ="' +
-                      webTitle +
-                      '".html>' +
-                      title +
-                      '</a></li>';
+                    '<li><a href ="' +
+                    webTitle +
+                    '".html>' +
+                    title +
+                    '</a></li>';
             }
 
             const backButtonMarkup =
@@ -469,7 +461,7 @@ function runProgram() {
 
             const backButton =
                 title === 'index' ||
-                (lastWebTitle.indexOf('%') > -1 && global.sequentialLinks)
+                    (lastWebTitle.indexOf('%') > -1 && global.sequentialLinks)
                     ? ''
                     : backButtonMarkup;
             const nextButton =
@@ -480,9 +472,9 @@ function runProgram() {
             let finalText =
                 global.projectAuthor !== ''
                     ? textArray[i].replace(
-                          '</h1>',
-                          '</h1><h3>by ' + global.projectAuthor + '</h3>'
-                      )
+                        '</h1>',
+                        '</h1><h3>by ' + global.projectAuthor + '</h3>'
+                    )
                     : textArray[i];
 
             let fileContents =
@@ -538,8 +530,8 @@ function runProgram() {
                         : global.projectAuthor;
                     const breakOrNot = global.projectAuthor
                         ? '<break time = "1s" /> by ' +
-                          global.projectAuthor +
-                          '<break time = "3s" />'
+                        global.projectAuthor +
+                        '<break time = "3s" />'
                         : '<break time = "3s" />';
 
                     file = file.replace(
@@ -614,19 +606,19 @@ function runProgram() {
                                                 const howManyIs =
                                                     file.match(/ i /gi) !== null
                                                         ? file.match(/ i /gi)
-                                                              .length
+                                                            .length
                                                         : 0;
                                                 const howManyHes =
                                                     file.match(/ he /gi) !==
-                                                    null
+                                                        null
                                                         ? file.match(/ he /gi)
-                                                              .length
+                                                            .length
                                                         : 0;
                                                 const howManyShes =
                                                     file.match(/ she /gi) !==
-                                                    null
+                                                        null
                                                         ? file.match(/ she /gi)
-                                                              .length
+                                                            .length
                                                         : 0;
 
                                                 if (
@@ -749,7 +741,7 @@ function runProgram() {
                     user: global.username,
                     password: global.password,
                     parallel: 10,
-                    log: function(item) {
+                    log: function (item) {
                         console.log(item);
                     }
                 });
