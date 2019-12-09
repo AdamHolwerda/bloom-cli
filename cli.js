@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
-import { collectImages } from 'funcs/collectImages';
+const collectImages = require('funcs/collectImages');
+const toWebTitle = require('funcs/toWebTitle');
 
 const fs = require('fs-extra'); // get fileSystem
 const concatStream = require('concat-stream'); //put a streaming chunked file into one glob
@@ -285,32 +286,6 @@ function generateBloomFile() {
     });
 }
 
-function toWebTitle(string, contents) {
-    if (typeof string === 'string') {
-        const titleHash = md5(contents);
-
-        if (string === '') {
-            return titleHash;
-        }
-
-        let webTitle = string.toLowerCase();
-
-        webTitle = webTitle.replace(new RegExp(' ', 'g'), '-');
-        webTitle = webTitle.replace(new RegExp('#', 'g'), '');
-        webTitle = webTitle.replace(new RegExp(',', 'g'), '');
-        webTitle = webTitle.replace(new RegExp('\\.', 'g'), '');
-        webTitle = webTitle.replace(new RegExp("['’]", 'g'), '');
-        webTitle = webTitle.replace(new RegExp('\\(', 'g'), '');
-        webTitle = webTitle.replace(new RegExp('\\)', 'g'), '');
-        webTitle = webTitle.replace(new RegExp(':', 'g'), '');
-        webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
-        webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
-
-        return webTitle + titleHash;
-    } else {
-        throw 'toWebTitle expects a string';
-    }
-}
 
 function numberWithCommas(x) {
     if (!x) {

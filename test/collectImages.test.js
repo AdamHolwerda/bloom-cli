@@ -1,8 +1,6 @@
 const chai = require('chai');
-
-const collectImages = require('../funcs/collectImages');
-
 const expect = chai.expect;
+const collectImages = require('../funcs/collectImages');
 
 describe('Collect images', function(){
 	it('finds images in html tags', function () {
