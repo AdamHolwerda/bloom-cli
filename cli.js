@@ -102,12 +102,13 @@ const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
 let coverImage;
 
 function answersCallback(answers) {
+    global.alphabetical = answers.alphabetical;
     global.projectTitle = answers.title;
     global.projectSubtitle = answers.subtitle;
     global.projectAuthor = answers.author;
     global.mp3 = answers.mp3;
     global.googleAnalyticsID = answers.googleAnalyticsID;
-    global.words = answers.words;
+    global.showWords = answers.words;
     global.ssml = answers.ssml;
     global.sequentialLinks = answers.sequential;
     global.makeBloomFile = answers.makeBloomFile;
@@ -645,6 +646,8 @@ function runProgram() {
                 return a.toLowerCase().localeCompare(b.toLowerCase());
             });
             webTitleArray.sort();
+
+            console.log(titleArray);
         }
 
         indexStr = commentDate + '<ul>'; //start over with this string
