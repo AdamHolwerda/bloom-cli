@@ -27,6 +27,7 @@ global.projectSubtitle = '';
 global.projectAuthor = '';
 global.sequentialLinks = false;
 global.showWords = false;
+global.hideIncomplete = true;
 global.alphabetical = false;
 global.ftp = false;
 global.hostname = '';
@@ -113,6 +114,7 @@ function answersCallback(answers) {
     global.sequentialLinks = answers.sequential;
     global.makeBloomFile = answers.makeBloomFile;
     global.ftp = answers.ftp;
+    global.hideIncomplete = answers.hideIncomplete;
 
     global.headerMarkup = global.headerString.replace(
         '<title></title>',
@@ -192,10 +194,16 @@ function askTheQuestions() {
             },
             {
                 type: 'confirm',
+                name: 'hideIncomplete',
+                default: true,
+                message: 'Hide incomplete stories with % in the title?'
+            },
+            {
+                type: 'confirm',
                 name: 'ssml',
                 default: false,
                 message:
-                    'Would you also like to generate a folder of SSML for using with Amazon Polly?'
+                    'Generate a folder of SSML for using with Amazon Polly?'
             },
             {
                 type: 'confirm',
@@ -209,14 +217,14 @@ function askTheQuestions() {
                 type: 'input',
                 default: '',
                 message:
-                    "Enter a Google Analytics ID if you'd like Bloom to add a script on every page."
+                    'Google Analytics ID (if Bloom should add a script on every page).'
             },
             {
                 type: 'confirm',
                 name: 'makeBloomFile',
                 default: false,
                 message:
-                    'Should Bloom create (or overwrite an existing) bloom.json file in this folder, with these answers?'
+                    'Create/overwrite bloom.json file in this folder, with these answers?'
             },
             {
                 type: 'confirm',
@@ -277,6 +285,7 @@ function generateBloomFile() {
         subtitle: global.projectSubtitle,
         words: global.showWords,
         alphabetical: global.alphabetical,
+        hideIncomplete: global.hideIncomplete,
         sequential: global.sequentialLinks,
         ssml: global.ssml,
         mp3: global.mp3,
@@ -398,12 +407,20 @@ function runProgram() {
             let lastTitle = last > 0 ? textArray[last].split('</h1>')[0] : '';
 
             if (title.indexOf('%') > -1) {
-                hideThis = true;
+                if (!global.hideIncomplete) {
+                    title = title.replace('%', '');
+                } else {
+                    hideThis = true;
+                }
             }
 
             title = striptags(title); //strip tags
             lastTitle = striptags(lastTitle);
             nextTitle = striptags(nextTitle);
+
+            title = title.replace(new RegExp('&quot;', 'g'), '');
+            lastTitle = lastTitle.replace(new RegExp('&quot;', 'g'), '');
+            nextTitle = nextTitle.replace(new RegExp('&quot;', 'g'), '');
 
             const webTitle = toWebTitle(title, textArray[i]);
 
@@ -647,7 +664,7 @@ function runProgram() {
             });
             webTitleArray.sort();
 
-            console.log(titleArray);
+            console.log(titleArray, webTitleArray);
         }
 
         indexStr = commentDate + '<ul>'; //start over with this string

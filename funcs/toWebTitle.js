@@ -20,6 +20,7 @@ const toWebTitle = (str, contents) => {
         webTitle = webTitle.replace(new RegExp(':', 'g'), '');
         webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
         webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('&quot;', 'g'), '');
 
         return webTitle + titleHash;
     } else {
