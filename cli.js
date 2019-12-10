@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
-const collectImages = require('funcs/collectImages');
-const toWebTitle = require('funcs/toWebTitle');
+const collectImages = require('./funcs/collectImages');
+const toWebTitle = require('./funcs/toWebTitle');
 
 const fs = require('fs-extra'); // get fileSystem
 const concatStream = require('concat-stream'); //put a streaming chunked file into one glob
@@ -15,7 +15,6 @@ const removeMD = require('remove-markdown');
 const entities = require('entities');
 const ssmlVal = require('ssml-validator');
 const typeset = require('typeset');
-const md5 = require('md5');
 const { replaceQuotes } = require('curly-q');
 const shell = require('shelljs');
 
@@ -87,8 +86,13 @@ if (cssFileExists) {
     cssFile = fs.createReadStream('css/style.css');
 }
 
-const indexStyles =
-    '<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} li {color:#aaa;} a {color:#444;} a:visited{color:black} h5 {font-size:26px;}</style>';
+const indexStyles = `<style>ul{margin-left:0; padding-left:0; list-style-type:none;}
+    ul li{margin-left:0; padding-left:0;} 
+    li {color:#aaa;} 
+    a {color:#444;} 
+    a:visited{color:black} 
+    h5 {font-size:26px;}</style>`;
+
 const coverImageExists = fs.existsSync('images/cover.jpg');
 
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
@@ -286,7 +290,6 @@ function generateBloomFile() {
     });
 }
 
-
 function numberWithCommas(x) {
     if (!x) {
         return '';
@@ -373,9 +376,9 @@ function runProgram() {
         const analytics =
             global.googleAnalyticsID !== ''
                 ? global.googleAnalyticsScript.replace(
-                    'bloom-googleAnalyticsID',
-                    global.googleAnalyticsID
-                )
+                      'bloom-googleAnalyticsID',
+                      global.googleAnalyticsID
+                  )
                 : '';
 
         for (let i = 0; i < textArray.length; i++) {
@@ -415,11 +418,11 @@ function runProgram() {
                 indexStr = hideThis
                     ? indexStr
                     : indexStr +
-                    '<li><a href ="' +
-                    webTitle +
-                    '".html>' +
-                    title +
-                    '</a></li>';
+                      '<li><a href ="' +
+                      webTitle +
+                      '".html>' +
+                      title +
+                      '</a></li>';
             }
 
             const backButtonMarkup =
@@ -436,7 +439,7 @@ function runProgram() {
 
             const backButton =
                 title === 'index' ||
-                    (lastWebTitle.indexOf('%') > -1 && global.sequentialLinks)
+                (lastWebTitle.indexOf('%') > -1 && global.sequentialLinks)
                     ? ''
                     : backButtonMarkup;
             const nextButton =
@@ -447,9 +450,9 @@ function runProgram() {
             let finalText =
                 global.projectAuthor !== ''
                     ? textArray[i].replace(
-                        '</h1>',
-                        '</h1><h3>by ' + global.projectAuthor + '</h3>'
-                    )
+                          '</h1>',
+                          '</h1><h3>by ' + global.projectAuthor + '</h3>'
+                      )
                     : textArray[i];
 
             let fileContents =
@@ -505,8 +508,8 @@ function runProgram() {
                         : global.projectAuthor;
                     const breakOrNot = global.projectAuthor
                         ? '<break time = "1s" /> by ' +
-                        global.projectAuthor +
-                        '<break time = "3s" />'
+                          global.projectAuthor +
+                          '<break time = "3s" />'
                         : '<break time = "3s" />';
 
                     file = file.replace(
@@ -558,7 +561,7 @@ function runProgram() {
                         (err) => {
                             if (err) {
                                 console.log(err);
-                            } else {
+                            } else if (global.mp3) {
                                 fs.pathExists(
                                     outDirName + '/ssml/' + webTitle + '.mp3',
                                     (err, exists) => {
@@ -581,19 +584,19 @@ function runProgram() {
                                                 const howManyIs =
                                                     file.match(/ i /gi) !== null
                                                         ? file.match(/ i /gi)
-                                                            .length
+                                                              .length
                                                         : 0;
                                                 const howManyHes =
                                                     file.match(/ he /gi) !==
-                                                        null
+                                                    null
                                                         ? file.match(/ he /gi)
-                                                            .length
+                                                              .length
                                                         : 0;
                                                 const howManyShes =
                                                     file.match(/ she /gi) !==
-                                                        null
+                                                    null
                                                         ? file.match(/ she /gi)
-                                                            .length
+                                                              .length
                                                         : 0;
 
                                                 if (
@@ -716,7 +719,7 @@ function runProgram() {
                     user: global.username,
                     password: global.password,
                     parallel: 10,
-                    log: function (item) {
+                    log: function(item) {
                         console.log(item);
                     }
                 });
