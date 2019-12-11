@@ -1,0 +1,31 @@
+const md5 = require('md5');
+
+const toWebTitle = (str, contents) => {
+    if (typeof str === 'string') {
+        const titleHash = contents ? md5(contents) : md5(str);
+
+        if (str === '') {
+            return titleHash;
+        }
+
+        let webTitle = str.toLowerCase();
+
+        webTitle = webTitle.replace(new RegExp(' ', 'g'), '-');
+        webTitle = webTitle.replace(new RegExp('#', 'g'), '');
+        webTitle = webTitle.replace(new RegExp(',', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('\\.', 'g'), '');
+        webTitle = webTitle.replace(new RegExp("['’]", 'g'), '');
+        webTitle = webTitle.replace(new RegExp('\\(', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('\\)', 'g'), '');
+        webTitle = webTitle.replace(new RegExp(':', 'g'), '');
+        webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
+        webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('&quot;', 'g'), '');
+
+        return webTitle + titleHash;
+    } else {
+        throw 'toWebTitle expects a string';
+    }
+};
+
+module.exports = toWebTitle;

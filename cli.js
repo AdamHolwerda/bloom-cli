@@ -1,5 +1,8 @@
 #! /usr/bin/env node
 
+const collectImages = require('./funcs/collectImages');
+const toWebTitle = require('./funcs/toWebTitle');
+
 const fs = require('fs-extra'); // get fileSystem
 const concatStream = require('concat-stream'); //put a streaming chunked file into one glob
 const q = require('q'); //so we can defer
@@ -12,7 +15,6 @@ const removeMD = require('remove-markdown');
 const entities = require('entities');
 const ssmlVal = require('ssml-validator');
 const typeset = require('typeset');
-const md5 = require('md5');
 const { replaceQuotes } = require('curly-q');
 const shell = require('shelljs');
 
@@ -25,6 +27,7 @@ global.projectSubtitle = '';
 global.projectAuthor = '';
 global.sequentialLinks = false;
 global.showWords = false;
+global.hideIncomplete = true;
 global.alphabetical = false;
 global.ftp = false;
 global.hostname = '';
@@ -39,10 +42,8 @@ global.googleAnalyticsScript = `<script>
 (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
 m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
 })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-
 ga('create', 'bloom-googleAnalyticsID', 'auto');
 ga('send', 'pageview');
-
 </script>`;
 
 global.bloomFileSettings = {};
@@ -61,13 +62,11 @@ const isThereABloomFile = fs.existsSync(bloomfile);
 
 if (isThereABloomFile) {
     fs.readJson(bloomfile, (error, data) => {
-
         if (error) {
             console.log(error);
         }
-        
-        Object.assign(global.bloomFileSettings, data);
 
+        Object.assign(global.bloomFileSettings, data);
     });
 }
 
@@ -80,7 +79,6 @@ if (headerFileExists) {
     headerFile = fs.createReadStream(__dirname + '/header.html');
 }
 
-
 const cssFileExists = fs.existsSync('css/style.css');
 
 let cssFile;
@@ -89,7 +87,13 @@ if (cssFileExists) {
     cssFile = fs.createReadStream('css/style.css');
 }
 
-const indexStyles = '<style>ul{margin-left:0; padding-left:0; list-style-type:none;}ul li{margin-left:0; padding-left:0;} li {color:#aaa;} a {color:#444;} a:visited{color:black} h5 {font-size:26px;}</style>';
+const indexStyles = `<style>ul{margin-left:0; padding-left:0; list-style-type:none;}
+    ul li{margin-left:0; padding-left:0;} 
+    li {color:#aaa;} 
+    a {color:#444;} 
+    a:visited{color:black} 
+    h5 {font-size:26px;}</style>`;
+
 const coverImageExists = fs.existsSync('images/cover.jpg');
 
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
@@ -99,184 +103,194 @@ const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
 let coverImage;
 
 function answersCallback(answers) {
-
-console.log(answers);
-
-    global.projectTitle =  answers.title;
+    global.alphabetical = answers.alphabetical;
+    global.projectTitle = answers.title;
     global.projectSubtitle = answers.subtitle;
     global.projectAuthor = answers.author;
     global.mp3 = answers.mp3;
     global.googleAnalyticsID = answers.googleAnalyticsID;
-    global.words = answers.words;
+    global.showWords = answers.words;
     global.ssml = answers.ssml;
     global.sequentialLinks = answers.sequential;
     global.makeBloomFile = answers.makeBloomFile;
     global.ftp = answers.ftp;
+    global.hideIncomplete = answers.hideIncomplete;
 
-    global.headerMarkup = global.headerString.replace('<title></title>', '<title>' + answers.title + '</title>');
-
-console.log(global);
+    global.headerMarkup = global.headerString.replace(
+        '<title></title>',
+        '<title>' + answers.title + '</title>'
+    );
 
     if (answers.ftp) {
+        inquirer.prompt(
+            [
+                {
+                    name: 'hostname',
+                    message:
+                        'Enter your hostname (exclude ftp:// or www prefixes)'
+                },
+                {
+                    name: 'username',
+                    message: 'Enter your username for that host'
+                },
+                {
+                    name: 'password',
+                    type: 'password',
+                    message: 'Enter your password for that host'
+                },
+                {
+                    name: 'remotePath',
+                    message:
+                        "Type a remote directory you'd like to bloom into (ex: html/project)"
+                }
+            ],
+            (moreAnswers) => {
+                global.hostname = moreAnswers.hostname;
+                global.username = moreAnswers.username;
+                global.password = moreAnswers.password;
+                global.remotePath = moreAnswers.remotePath;
 
-        inquirer.prompt([{
-            'name': 'hostname',
-            'message': 'Enter your hostname (exclude ftp:// or www prefixes)'
-        }, {
-            'name': 'username',
-            'message': 'Enter your username for that host'
-        }, {
-            'name': 'password',
-            'type': 'password',
-            'message': 'Enter your password for that host'
-        }, {
-            'name': 'remotePath',
-            'message': 'Type a remote directory you\'d like to bloom into (ex: html/project)'
-        }
-
-        ], (moreAnswers) => {
-
-            global.hostname = moreAnswers.hostname;
-            global.username = moreAnswers.username;
-            global.password = moreAnswers.password;
-            global.remotePath = moreAnswers.remotePath;
-
-            runProgram();
-
-        });
-
-
+                runProgram();
+            }
+        );
     } else {
-
         runProgram();
-
     }
-
 }
 
 function askTheQuestions() {
-
-    inquirer.prompt([
-        {
-            'name': 'title',
-            'message': 'What title should appear on the index page?'
-        }, {
-            'name': 'subtitle',
-            'message': 'What subtitle should appear below the title?'
-        }, 
-        {
-            'name': 'author',
-            'message': 'Author name, if any?'
-        },
-        {
-            'type': 'confirm',
-            'name': 'words',
-            'default': false,
-            'message': 'Show word counts next to index links?'
-        }, {
-            'type': 'confirm',
-            'name': 'alphabetical',
-            'default': false,
-            'message': 'Should the links on the index page be alphabetized?'
-        }, {
-            'type': 'confirm',
-            'name': 'sequential',
-            'default': false,
-            'message': 'Should each page link to the next page instead of back to index page?'
-        }, {
-            'type': 'confirm',
-            'name': 'ssml',
-            'default': false,
-            'message': 'Would you also like to generate a folder of SSML for using with Amazon Polly?'
-        },
-        {
-            'type': 'confirm',
-            'name': 'mp3',
-            'default': false,
-            'message': 'Use SSML to make MP3s and add an audio player to each page?'
-        },
-        {
-            'name': 'googleAnalyticsID',
-            'type':'input',
-            'default': '',
-            'message': 'Enter a Google Analytics ID if you\'d like Bloom to add a script on every page.'
-        },
-        { 
-            'type': 'confirm',
-            'name': 'makeBloomFile',
-            'default': false,
-            'message': 'Should Bloom create (or overwrite an existing) bloom.json file in this folder, with these answers?'
-        },
-        {
-            'type': 'confirm',
-            'name': 'ftp',
-            'default': false,
-            'message': 'Bloom can upload your files for you, if you provide FTP details. Yeah?'
-        }], (answers) => {
-
-        answersCallback(answers);
-
-    });
-
+    inquirer.prompt(
+        [
+            {
+                name: 'title',
+                message: 'What title should appear on the index page?'
+            },
+            {
+                name: 'subtitle',
+                message: 'What subtitle should appear below the title?'
+            },
+            {
+                name: 'author',
+                message: 'Author name, if any?'
+            },
+            {
+                type: 'confirm',
+                name: 'words',
+                default: false,
+                message: 'Show word counts next to index links?'
+            },
+            {
+                type: 'confirm',
+                name: 'alphabetical',
+                default: false,
+                message: 'Should the links on the index page be alphabetized?'
+            },
+            {
+                type: 'confirm',
+                name: 'sequential',
+                default: false,
+                message:
+                    'Should each page link to the next page instead of back to index page?'
+            },
+            {
+                type: 'confirm',
+                name: 'hideIncomplete',
+                default: true,
+                message: 'Hide incomplete stories with % in the title?'
+            },
+            {
+                type: 'confirm',
+                name: 'ssml',
+                default: false,
+                message:
+                    'Generate a folder of SSML for using with Amazon Polly?'
+            },
+            {
+                type: 'confirm',
+                name: 'mp3',
+                default: false,
+                message:
+                    'Use SSML to make MP3s and add an audio player to each page?'
+            },
+            {
+                name: 'googleAnalyticsID',
+                type: 'input',
+                default: '',
+                message:
+                    'Google Analytics ID (if Bloom should add a script on every page).'
+            },
+            {
+                type: 'confirm',
+                name: 'makeBloomFile',
+                default: false,
+                message:
+                    'Create/overwrite bloom.json file in this folder, with these answers?'
+            },
+            {
+                type: 'confirm',
+                name: 'ftp',
+                default: false,
+                message:
+                    'Bloom can upload your files for you, if you provide FTP details. Yeah?'
+            }
+        ],
+        (answers) => {
+            answersCallback(answers);
+        }
+    );
 }
 
 if (isThereABloomFile) {
+    inquirer.prompt(
+        [
+            {
+                name: 'useBloomFile',
+                message: "Use the settings in this folder's bloomfile?",
+                type: 'confirm',
+                default: true
+            }
+        ],
+        (answer) => {
+            global.useBloomFile = answer.useBloomFile;
 
-    inquirer.prompt([{
-        name: 'useBloomFile',
-        message: 'Use the settings in this folder\'s bloomfile?',
-        type: 'confirm',
-        default: true
-    }], (answer) => {
-
-        global.useBloomFile = answer.useBloomFile;
-
-        if (answer.useBloomFile) {
-
-            answersCallback(global.bloomFileSettings);
-
-        } else {
-
-            askTheQuestions();
-
+            if (answer.useBloomFile) {
+                answersCallback(global.bloomFileSettings);
+            } else {
+                askTheQuestions();
+            }
         }
-
-    });
-
+    );
 } else {
-
     askTheQuestions();
-
 }
 
 function makeFileAString(file) {
-// make a new deferred object so we can chain
-    const deferred = q.defer(); 
+    // make a new deferred object so we can chain
+    const deferred = q.defer();
 
-    file.pipe(concatStream((data) => {
-
-        deferred.resolve(data.toString());
-
-    }));
+    file.pipe(
+        concatStream((data) => {
+            deferred.resolve(data.toString());
+        })
+    );
 
     return deferred.promise;
-
 }
 
 function generateBloomFile() {
- 
     const file = bloomfile;
     const obj = {
         title: global.projectTitle,
         author: global.projectAuthor,
         subtitle: global.projectSubtitle,
-        words : global.showWords,
-        alphabetical : global.alphabetical, 
-        sequential : global.sequentialLinks,
+        words: global.showWords,
+        alphabetical: global.alphabetical,
+        hideIncomplete: global.hideIncomplete,
+        sequential: global.sequentialLinks,
         ssml: global.ssml,
         mp3: global.mp3,
-        ftp : global.ftp,
-        googleAnalyticsID : global.googleAnalyticsID
+        ftp: global.ftp,
+        googleAnalyticsID: global.googleAnalyticsID
     };
 
     fs.writeJson(file, obj, { spaces: 2 }, (err) => {
@@ -284,53 +298,6 @@ function generateBloomFile() {
             console.log(err);
         }
     });
-}
-
-function collectImages(string) {
-    //there might be linked images in the text, collect them
-    //copy them to the index-bloomed folder
-    const imgGex = /([a-z\-_0-9/:.]*\.(jpg|jpeg|png|gif))/gi;
-
-    const images = string.match(imgGex);
-
-    if (images !== null) {
-        images.forEach((img) => {
-            fs.copy('./' + img, outDirName + '/' + img, (err) => {
-                console.log(err);
-            });
-        });
-    }
-
-}
-
-function toWebTitle(string, contents) {
-
-    if (typeof string === 'string') {
-
-        const titleHash = md5(contents);
-
-        if (string === '') {
-            return titleHash;
-        }
-
-        let webTitle = string.toLowerCase();
-        
-        webTitle = webTitle.replace(new RegExp(' ', 'g'), '-');
-        webTitle = webTitle.replace(new RegExp('#', 'g'), '');
-        webTitle = webTitle.replace(new RegExp(',', 'g'), '');
-        webTitle = webTitle.replace(new RegExp('\\.', 'g'), '');
-        webTitle = webTitle.replace(new RegExp('[\'’]', 'g'), '');
-        webTitle = webTitle.replace(new RegExp('\\(', 'g'), '');
-        webTitle = webTitle.replace(new RegExp('\\)', 'g'), '');
-        webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
-        webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
-
-        return webTitle + titleHash;
-
-    } else {
-        throw 'toWebTitle expects a string';
-    }
-
 }
 
 function numberWithCommas(x) {
@@ -345,32 +312,25 @@ function numberWithCommas(x) {
 //make a folder
 fs.ensureDir('./' + outDirName, (err) => {
     console.log(err);
-}); 
+});
 
 if (headerFileExists) {
-
-    makeFileAString(headerFile)
-        .then((data) => {
-
-            global.headerString = data;
-        });
-
+    makeFileAString(headerFile).then((data) => {
+        global.headerString = data;
+    });
 } else {
     console.log('There is no header file');
 }
 
 if (cssFileExists) {
     makeFileAString(cssFile).then((data) => {
-
         fs.outputFile(outDirName + '/style.css', data, (err) => {
             console.log(err);
         });
-
     });
 }
 
 function runProgram() {
-
     if (global.makeBloomFile) {
         generateBloomFile(); // before anything else, generate a bloomfile if we're supposed to
     }
@@ -382,45 +342,56 @@ function runProgram() {
     }
 
     if (global.ssml) {
-
         fs.ensureDir('./' + outDirName + '/ssml', (err) => {
             console.log(err);
         });
-
     }
 
     makeFileAString(inputFile).then((data) => {
-
         const splitter = '<h1>'; // we could have this be a prompted answer
 
-        collectImages(data);
+        const images = collectImages(data);
+
+        if (images !== null) {
+            images.forEach((img) => {
+                fs.copy('./' + img, outDirName + '/' + img, (err) => {
+                    console.log(err);
+                });
+            });
+        }
 
         const textArray = data.split(splitter);
 
         const includeInIndex = '';
 
         if (coverImageExists) {
+            fs.createReadStream('images/cover.jpg').pipe(
+                fs.createWriteStream(outDirName + '/images/cover.jpg')
+            );
 
-            fs.createReadStream('images/cover.jpg').pipe(fs.createWriteStream(outDirName + '/images/cover.jpg'));
-
-            coverImage = '<img src = \'images/cover.jpg\' />';
-
+            coverImage = "<img src = 'images/cover.jpg' />";
         } else {
             coverImage = '';
         }
 
         const datetime = new Date();
 
-        const commentDate = '<!-- Generated on ' + datetime + ' with bloom-cli -->';
+        const commentDate =
+            '<!-- Generated on ' + datetime + ' with bloom-cli -->';
 
         let indexStr = commentDate + '<ul>';
 
         const titleArray = [];
         const webTitleArray = [];
-        const analytics = global.googleAnalyticsID !== '' ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID) : '';
+        const analytics =
+            global.googleAnalyticsID !== ''
+                ? global.googleAnalyticsScript.replace(
+                      'bloom-googleAnalyticsID',
+                      global.googleAnalyticsID
+                  )
+                : '';
 
         for (let i = 0; i < textArray.length; i++) {
-
             const next = i + 1;
             const last = i - 1;
 
@@ -428,40 +399,89 @@ function runProgram() {
 
             let hideThis = false;
 
-            let nextTitle = next < textArray.length ? textArray[next].split('</h1>')[0] : 'index';
+            let nextTitle =
+                next < textArray.length
+                    ? textArray[next].split('</h1>')[0]
+                    : 'index';
 
             let lastTitle = last > 0 ? textArray[last].split('</h1>')[0] : '';
 
             if (title.indexOf('%') > -1) {
-                hideThis = true;
+                if (!global.hideIncomplete) {
+                    title = title.replace('%', '');
+                } else {
+                    hideThis = true;
+                }
             }
 
             title = striptags(title); //strip tags
             lastTitle = striptags(lastTitle);
             nextTitle = striptags(nextTitle);
 
+            title = title.replace(new RegExp('&quot;', 'g'), '');
+            lastTitle = lastTitle.replace(new RegExp('&quot;', 'g'), '');
+            nextTitle = nextTitle.replace(new RegExp('&quot;', 'g'), '');
+
             const webTitle = toWebTitle(title, textArray[i]);
 
-            const lastWebTitle = lastTitle !== '' ?  toWebTitle(lastTitle, textArray[last]) : '';
+            const lastWebTitle =
+                lastTitle !== '' ? toWebTitle(lastTitle, textArray[last]) : '';
 
-            const nextWebTitle = nextTitle !== 'index' ? toWebTitle(nextTitle, textArray[next]) : '';
+            const nextWebTitle =
+                nextTitle !== 'index'
+                    ? toWebTitle(nextTitle, textArray[next])
+                    : '';
 
             if (title !== 'index') {
-
-                indexStr = hideThis ? indexStr : indexStr + '<li><a href ="' + webTitle + '".html>' + title + '</a></li>';
-
+                indexStr = hideThis
+                    ? indexStr
+                    : indexStr +
+                      '<li><a href ="' +
+                      webTitle +
+                      '".html>' +
+                      title +
+                      '</a></li>';
             }
 
-            const backButtonMarkup = global.sequentialLinks && lastWebTitle !== '' ? `<br><br><a class ='button-back' href = 'index.html'>home</a><br><br><a class = 'button-back' href = '${lastWebTitle}.html'>previous</a>` : '<br/><br/><a class = \'button-back\' href = \'index.html\'>back</a>';
-            const nextButtonMarkup = global.sequentialLinks && nextWebTitle !== '' ? `<br><br><a class = 'button-next' href = '${nextWebTitle}.html'>next</a><br/><br/><br/><br/>` : '<br><br><a class =\'button-next\' href = \'index.html\'>back</a><br><br><br/><br/>';
-            const audioMarkup = global.mp3 ? `<audio controls src='ssml/${webTitle}.mp3' type="audio/mp3" style = 'width:100%;'><p><a href="ssml/${webTitle}.mp3"></a></p></audio><br/><br/>` : '';
+            const backButtonMarkup =
+                global.sequentialLinks && lastWebTitle !== ''
+                    ? `<br><br><a class ='button-back' href = 'index.html'>home</a><br><br><a class = 'button-back' href = '${lastWebTitle}.html'>previous</a>`
+                    : "<br/><br/><a class = 'button-back' href = 'index.html'>back</a>";
+            const nextButtonMarkup =
+                global.sequentialLinks && nextWebTitle !== ''
+                    ? `<br><br><a class = 'button-next' href = '${nextWebTitle}.html'>next</a><br/><br/><br/><br/>`
+                    : "<br><br><a class ='button-next' href = 'index.html'>back</a><br><br><br/><br/>";
+            const audioMarkup = global.mp3
+                ? `<audio controls src='ssml/${webTitle}.mp3' type="audio/mp3" style = 'width:100%;'><p><a href="ssml/${webTitle}.mp3"></a></p></audio><br/><br/>`
+                : '';
 
-            const backButton = title === 'index' || lastWebTitle.indexOf('%') > -1 && global.sequentialLinks ? '' : backButtonMarkup;
-            const nextButton = title === 'index' || nextWebTitle.indexOf('%') > -1 ? '' : nextButtonMarkup;
+            const backButton =
+                title === 'index' ||
+                (lastWebTitle.indexOf('%') > -1 && global.sequentialLinks)
+                    ? ''
+                    : backButtonMarkup;
+            const nextButton =
+                title === 'index' || nextWebTitle.indexOf('%') > -1
+                    ? ''
+                    : nextButtonMarkup;
 
-            let finalText = global.projectAuthor !== '' ? textArray[i].replace('</h1>', '</h1><h3>by ' + global.projectAuthor + '</h3>')  : textArray[i];
+            let finalText =
+                global.projectAuthor !== ''
+                    ? textArray[i].replace(
+                          '</h1>',
+                          '</h1><h3>by ' + global.projectAuthor + '</h3>'
+                      )
+                    : textArray[i];
 
-            let fileContents = commentDate + backButton + splitter + audioMarkup + finalText + nextButton + analytics + '</body></html>';
+            let fileContents =
+                commentDate +
+                backButton +
+                splitter +
+                audioMarkup +
+                finalText +
+                nextButton +
+                analytics +
+                '</body></html>';
 
             fileContents = replaceQuotes(fileContents);
             fileContents = typeset(fileContents);
@@ -471,113 +491,171 @@ function runProgram() {
             //spit out the file in this next part
 
             if (title !== 'index' && !hideThis && webTitle !== '') {
+                const thisHeader = global.headerString.replace(
+                    '<title></title>',
+                    '<title>' + title + '</title>'
+                );
 
-                const thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
+                fs.outputFile(
+                    outDirName + '/' + webTitle + '.html',
+                    thisHeader + fileContents,
+                    (err) => {
+                        // this is htmlencoding automatically so we don't do it here
 
-
-                fs.outputFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, (err) => { 
-                    
-                    // this is htmlencoding automatically so we don't do it here
-
-                    if (err) {
-                        console.log(err);
+                        if (err) {
+                            console.log(err);
+                        }
                     }
-
-                });
+                );
 
                 if (global.ssml) {
+                    finalText = finalText.replace(
+                        new RegExp(/<br\/>/, 'g'),
+                        '-BREAKSPACE-'
+                    );
 
-                    finalText = finalText.replace(new RegExp(/<br\/>/, 'g'), '-BREAKSPACE-');
-
-                    let file = entities.decodeHTML(removeMD(splitter + finalText));
+                    let file = entities.decodeHTML(
+                        removeMD(splitter + finalText)
+                    );
 
                     const prepend = '<speak>';
                     const append = '</speak>';
 
-                    const authorOrNot = global.projectAuthor ? 'by ' + global.projectAuthor : global.projectAuthor;
-                    const breakOrNot = global.projectAuthor ? '<break time = "1s" /> by ' + global.projectAuthor + '<break time = "3s" />' : '<break time = "3s" />';
+                    const authorOrNot = global.projectAuthor
+                        ? 'by ' + global.projectAuthor
+                        : global.projectAuthor;
+                    const breakOrNot = global.projectAuthor
+                        ? '<break time = "1s" /> by ' +
+                          global.projectAuthor +
+                          '<break time = "3s" />'
+                        : '<break time = "3s" />';
 
-                    file = file.replace(new RegExp(authorOrNot, 'i'), breakOrNot);
+                    file = file.replace(
+                        new RegExp(authorOrNot, 'i'),
+                        breakOrNot
+                    );
 
-                    file = file.replace(new RegExp(/-BREAKSPACE-/, 'g'), '<break time = "1s" />');
+                    file = file.replace(
+                        new RegExp(/-BREAKSPACE-/, 'g'),
+                        '<break time = "1s" />'
+                    );
 
-                    file = file.replace(new RegExp(/\n\n/, 'g'), '<break time = "1s" />');
-                    file = file.replace(new RegExp(/ -- /, 'g'), '<break time = "800ms" />');
-                    file = file.replace(new RegExp(/ - /, 'g'), '<break time = "800ms" />');
-                    file = file.replace(new RegExp(/ – /, 'g'), '<break time = "800ms" />');
-                    file = file.replace(new RegExp(/\n/, 'g'), '<break time = "800ms" />');
-                    file = file.replace(new RegExp(/\? /, 'g'), '?<break time = "500ms" />');
-                    file = file.replace(new RegExp(/\.\.\./, 'g'), '?<break time = "1200ms" />');
+                    file = file.replace(
+                        new RegExp(/\n\n/, 'g'),
+                        '<break time = "1s" />'
+                    );
+                    file = file.replace(
+                        new RegExp(/ -- /, 'g'),
+                        '<break time = "800ms" />'
+                    );
+                    file = file.replace(
+                        new RegExp(/ - /, 'g'),
+                        '<break time = "800ms" />'
+                    );
+                    file = file.replace(
+                        new RegExp(/ – /, 'g'),
+                        '<break time = "800ms" />'
+                    );
+                    file = file.replace(
+                        new RegExp(/\n/, 'g'),
+                        '<break time = "800ms" />'
+                    );
+                    file = file.replace(
+                        new RegExp(/\? /, 'g'),
+                        '?<break time = "500ms" />'
+                    );
+                    file = file.replace(
+                        new RegExp(/\.\.\./, 'g'),
+                        '?<break time = "1200ms" />'
+                    );
 
                     file = prepend + file + append;
 
                     file = ssmlVal.correct(file);
 
-                    fs.outputFile(outDirName + '/ssml/' + webTitle + '.xml', file,  (err) => {
-
-                        if (err) {
-                            console.log(err);
-                        } else {
-
-                            fs.pathExists(outDirName + '/ssml/' + webTitle + '.mp3', (err, exists) => {
-                             
-                                if (err) {
-                                    console.log(err);
-                                }
-
-                                //if the path exists, we already have an mp3 of this version, don't need to make a new one
-                                if (!exists) {
-
-                                    if (!shell.which('tts')) {
-                                        //if the user doesn't have tts, we shouldn't try to do this.
-                                        
-                                        shell.echo('You need the tts package to create MP3s.');
-                                        shell.exit(1);
-        
-                                    } else {
-
-                                        let femaleNarrator = false;
-
-                                        if (file.match(/ she /gi).length > file.match(/ he /gi).length) {
-                                            femaleNarrator = true;
+                    fs.outputFile(
+                        outDirName + '/ssml/' + webTitle + '.xml',
+                        file,
+                        (err) => {
+                            if (err) {
+                                console.log(err);
+                            } else if (global.mp3) {
+                                fs.pathExists(
+                                    outDirName + '/ssml/' + webTitle + '.mp3',
+                                    (err, exists) => {
+                                        if (err) {
+                                            console.log(err);
                                         }
-                    
-                                        const genderFlag = femaleNarrator ? '--voice Joanna' : '--voice Matthew';
-        
-                                        //path doesn't exist, user has tts, make mp3 file
-        
-                                        shell.exec(`tts ${outDirName}/ssml/${webTitle}.xml ${outDirName}/ssml/${webTitle}.mp3 --type ssml --sample-rate 16000 ${genderFlag}`);
-        
+
+                                        //if the path exists, we already have an mp3 of this version, don't need to make a new one
+                                        if (!exists) {
+                                            if (!shell.which('tts')) {
+                                                //if the user doesn't have tts, we shouldn't try to do this.
+
+                                                shell.echo(
+                                                    'You need the tts package to create MP3s.'
+                                                );
+                                                shell.exit(1);
+                                            } else {
+                                                let femaleNarrator = false;
+
+                                                const howManyIs =
+                                                    file.match(/ i /gi) !== null
+                                                        ? file.match(/ i /gi)
+                                                              .length
+                                                        : 0;
+                                                const howManyHes =
+                                                    file.match(/ he /gi) !==
+                                                    null
+                                                        ? file.match(/ he /gi)
+                                                              .length
+                                                        : 0;
+                                                const howManyShes =
+                                                    file.match(/ she /gi) !==
+                                                    null
+                                                        ? file.match(/ she /gi)
+                                                              .length
+                                                        : 0;
+
+                                                if (
+                                                    howManyIs < howManyShes &&
+                                                    howManyShes > howManyHes
+                                                ) {
+                                                    femaleNarrator = true;
+                                                }
+
+                                                const genderFlag = femaleNarrator
+                                                    ? '--voice Joanna'
+                                                    : '--voice Matthew';
+
+                                                //path doesn't exist, user has tts, make mp3 file
+
+                                                shell.exec(
+                                                    `tts ${outDirName}/ssml/${webTitle}.xml ${outDirName}/ssml/${webTitle}.mp3 --type ssml --sample-rate 16000 ${genderFlag}`
+                                                );
+                                            }
+                                        }
                                     }
-
-                                }
-
-                            });
-                            
+                                );
+                            }
                         }
-                        
-                    });
-
+                    );
                 }
-
-
-            }  //after making file, gather stuff for index file
+            } //after making file, gather stuff for index file
 
             if (global.showWords && title !== '' && title !== 'index') {
-
                 title = title + ' (' + numberWithCommas(wordCount) + ' words)';
 
-                indexStr = indexStr.replace(new RegExp(title), title + ' (' + wordCount + ' words)');
-
+                indexStr = indexStr.replace(
+                    new RegExp(title),
+                    title + ' (' + wordCount + ' words)'
+                );
             }
 
             if (title !== '' && title !== 'index') {
-
                 titleArray.push(title);
                 webTitleArray.push(webTitle);
-
             }
-
         }
 
         if (global.alphabetical) {
@@ -585,6 +663,8 @@ function runProgram() {
                 return a.toLowerCase().localeCompare(b.toLowerCase());
             });
             webTitleArray.sort();
+
+            console.log(titleArray, webTitleArray);
         }
 
         indexStr = commentDate + '<ul>'; //start over with this string
@@ -608,50 +688,70 @@ function runProgram() {
             webTitleTwo = webTitleTwo.split('-(');
 
             if (nonWebTitle.length > 1) {
-                indexStr += '<li><a href = \'' + webTitleTwo + '.html\'>' + nonWebTitle[0] + '</a> (' + nonWebTitle[1] + '</li>';
+                indexStr +=
+                    "<li><a href = '" +
+                    webTitleTwo +
+                    ".html'>" +
+                    nonWebTitle[0] +
+                    '</a> (' +
+                    nonWebTitle[1] +
+                    '</li>';
             } else {
-                indexStr += '<li><a href = \'' + webTitleTwo + '.html\'>' + nonWebTitle[0] + '</a></li>';
+                indexStr +=
+                    "<li><a href = '" +
+                    webTitleTwo +
+                    ".html'>" +
+                    nonWebTitle[0] +
+                    '</a></li>';
             }
-
         });
 
-        
+        const projectAuthor = global.projectAuthor
+            ? '<h5>by ' + global.projectAuthor + '</h5>'
+            : '';
 
-        const projectAuthor = global.projectAuthor ? '<h5>by ' + global.projectAuthor + '</h5>' : '';
+        const finalFile =
+            global.headerMarkup +
+            indexStyles +
+            coverImage +
+            '<h1>' +
+            global.projectTitle +
+            '</h1> <h2>' +
+            global.projectSubtitle +
+            '</h2>' +
+            projectAuthor +
+            includeInIndex +
+            indexStr +
+            '</ul>' +
+            analytics +
+            '</body></html>';
 
-        const finalFile = (global.headerMarkup + indexStyles + coverImage + '<h1>' + global.projectTitle + '</h1> <h2>' + global.projectSubtitle + '</h2>' + projectAuthor + includeInIndex + indexStr + '</ul>' + analytics + '</body></html>');
-
-        fs.outputFile(outDirName + '/index.html', finalFile , (err) => {
-
+        fs.outputFile(outDirName + '/index.html', finalFile, (err) => {
             if (err) {
-
-                console.log('error3', err);
+                console.log(err);
             }
 
             //launch the static site in the user's browser
 
             if (global.ftp) {
-
                 const conn = new vinylFtp({
                     host: global.hostname,
                     user: global.username,
                     password: global.password,
                     parallel: 10,
-                    log: function (item) {
+                    log: function(item) {
                         console.log(item);
                     }
                 });
 
-                vinylFs.src([outDirName + '/**'], {
-                    buffer: false
-                })
+                vinylFs
+                    .src([outDirName + '/**'], {
+                        buffer: false
+                    })
                     .pipe(conn.dest(global.remotePath));
-
             }
 
             open(outDirName + '/index.html');
         });
-
     });
-
 }
