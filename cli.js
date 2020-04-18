@@ -462,13 +462,12 @@ function runProgram() {
                     ? ''
                     : nextButtonMarkup;
 
-            let finalText =
-                global.projectAuthor !== ''
-                    ? textArray[i].replace(
-                          '</h1>',
-                          `</h1><h3>by ${global.projectAuthor} </h3>`
-                      )
-                    : textArray[i];
+            let finalText = global.projectAuthor
+                ? textArray[i].replace(
+                      '</h1>',
+                      `</h1><h3>by ${global.projectAuthor} </h3>`
+                  )
+                : textArray[i];
 
             let fileContents =
                 commentDate +
