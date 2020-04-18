@@ -122,8 +122,8 @@ function answersCallback(answers) {
     );
 
     if (answers.ftp) {
-        inquirer.prompt(
-            [
+        inquirer
+            .prompt([
                 {
                     name: 'hostname',
                     message:
@@ -143,24 +143,23 @@ function answersCallback(answers) {
                     message:
                         "Type a remote directory you'd like to bloom into (ex: html/project)"
                 }
-            ],
-            (moreAnswers) => {
+            ])
+            .then((moreAnswers) => {
                 global.hostname = moreAnswers.hostname;
                 global.username = moreAnswers.username;
                 global.password = moreAnswers.password;
                 global.remotePath = moreAnswers.remotePath;
 
                 runProgram();
-            }
-        );
+            });
     } else {
         runProgram();
     }
 }
 
 function askTheQuestions() {
-    inquirer.prompt(
-        [
+    inquirer
+        .prompt([
             {
                 name: 'title',
                 message: 'What title should appear on the index page?'
@@ -233,24 +232,23 @@ function askTheQuestions() {
                 message:
                     'Bloom can upload your files for you, if you provide FTP details. Yeah?'
             }
-        ],
-        (answers) => {
+        ])
+        .then((answers) => {
             answersCallback(answers);
-        }
-    );
+        });
 }
 
 if (isThereABloomFile) {
-    inquirer.prompt(
-        [
+    inquirer
+        .prompt([
             {
                 name: 'useBloomFile',
                 message: "Use the settings in this folder's bloomfile?",
                 type: 'confirm',
                 default: true
             }
-        ],
-        (answer) => {
+        ])
+        .then((answer) => {
             global.useBloomFile = answer.useBloomFile;
 
             if (answer.useBloomFile) {
@@ -258,8 +256,7 @@ if (isThereABloomFile) {
             } else {
                 askTheQuestions();
             }
-        }
-    );
+        });
 } else {
     askTheQuestions();
 }
@@ -445,12 +442,12 @@ function runProgram() {
 
             const backButtonMarkup =
                 global.sequentialLinks && lastWebTitle !== ''
-                    ? `<br><br><a class ='button-back' href = 'index.html'>home</a><br><br><a class = 'button-back' href = '${lastWebTitle}.html'>previous</a>`
-                    : "<br/><br/><a class = 'button-back' href = 'index.html'>back</a>";
+                    ? `<br><br><a class='button-back' href = 'index.html'>home</a><br><br><a class='button-back' href = '${lastWebTitle}.html'>previous</a>`
+                    : "<br/><br/><a class='button-back' href = 'index.html'>back</a>";
             const nextButtonMarkup =
                 global.sequentialLinks && nextWebTitle !== ''
-                    ? `<br><br><a class = 'button-next' href = '${nextWebTitle}.html'>next</a><br/><br/><br/><br/>`
-                    : "<br><br><a class ='button-next' href = 'index.html'>back</a><br><br><br/><br/>";
+                    ? `<br><br><a class='button-next' href = '${nextWebTitle}.html'>next</a><br/><br/><br/><br/>`
+                    : "<br><br><a class='button-next' href = 'index.html'>back</a><br><br><br/><br/>";
             const audioMarkup = global.mp3
                 ? `<audio controls src='ssml/${webTitle}.mp3' type="audio/mp3" style = 'width:100%;'><p><a href="ssml/${webTitle}.mp3"></a></p></audio><br/><br/>`
                 : '';
@@ -469,7 +466,7 @@ function runProgram() {
                 global.projectAuthor !== ''
                     ? textArray[i].replace(
                           '</h1>',
-                          '</h1><h3>by ' + global.projectAuthor + '</h3>'
+                          `</h1><h3>by ${global.projectAuthor} </h3>`
                       )
                     : textArray[i];
 
@@ -739,7 +736,7 @@ function runProgram() {
                     user: global.username,
                     password: global.password,
                     parallel: 10,
-                    log: function(item) {
+                    log: function (item) {
                         console.log(item);
                     }
                 });
