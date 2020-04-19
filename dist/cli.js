@@ -76,8 +76,8 @@ const indexStyles = `<style>ul{margin-left:0; padding-left:0; list-style-type:no
     a {color:#444;} 
     a:visited{color:black} 
     h5 {font-size:26px;}
-    body {margin: 0; max-width:100%; }
-    .content {margin: 0 auto; max-width:700px; width: 80%:}
+    body {margin: 0; max-width:100%; width:100%; }
+    .content {margin: 0 auto; max-width:700px; width: 80%;}
     </style>`;
 const coverImageExists = fs.existsSync(coverFileLocation);
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
