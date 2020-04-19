@@ -11,9 +11,10 @@
     "license": "ISC",
     "preferGlobal": true,
     "bin": {
-        "bloom": "cli.js"
+        "bloom": "dist/cli.js"
     },
     "dependencies": {
+        "@types/node": "^13.13.0",
         "chai": "^4.2.0",
         "concat-stream": "^2.0.0",
         "curly-q": "0.0.1",

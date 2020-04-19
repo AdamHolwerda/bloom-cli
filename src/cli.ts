@@ -7,9 +7,9 @@ const fs = require('fs-extra'); // get fileSystem
 const concatStream = require('concat-stream'); //put a streaming chunked file into one glob
 const q = require('q'); //so we can defer
 const inquirer = require('inquirer'); //so we can ask questions
-const open = require('open'); //so we can open files
+const openFile = require('open'); //so we can open files
 const vinylFs = require('vinyl-fs');
-const striptags = require('striptags');
+const stripTags = require('striptags');
 const vinylFtp = require('vinyl-ftp');
 const removeMD = require('remove-markdown');
 const entities = require('entities');
@@ -19,6 +19,45 @@ const { replaceQuotes } = require('curly-q');
 const shell = require('shelljs');
 
 const bloomfile = './bloom.json';
+
+declare namespace NodeJS {
+    interface Global extends Bloom {}
+}
+
+interface Bloomfile {
+    title: string;
+    author: string;
+    subtitle: string;
+    words: boolean;
+    alphabetical: boolean;
+    hideIncomplete: boolean;
+    sequential: boolean;
+    ssml: boolean;
+    mp3: boolean;
+    ftp: boolean;
+    googleAnalyticsID: string;
+}
+
+interface UploadOptions {
+    hostname: string;
+    username: string;
+    password: string;
+    remotePath: string;
+}
+
+interface Bloom extends Bloomfile, UploadOptions {
+    headerString: string;
+    headerMarkup: string;
+    projectTitle: string;
+    projectSubtitle: string;
+    projectAuthor: string;
+    sequentialLinks: boolean;
+    showWords: boolean;
+    googleAnalyticsScript: string;
+    bloomFileSettings: Bloomfile;
+    useBloomFile: boolean;
+    makeBloomFile: boolean;
+}
 
 global.headerString = '';
 global.headerMarkup = '';
@@ -45,12 +84,12 @@ m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
 ga('create', 'bloom-googleAnalyticsID', 'auto');
 ga('send', 'pageview');
 </script>`;
-
-global.bloomFileSettings = {};
+global.bloomFileSettings = {} as Bloomfile;
 global.useBloomFile = false;
 global.makeBloomFile = false;
 
 const userArgs = process.argv.slice(2);
+const coverFileLocation = 'images/cover.jpg';
 
 let fileToBloomFrom = userArgs[0];
 
@@ -94,15 +133,28 @@ const indexStyles = `<style>ul{margin-left:0; padding-left:0; list-style-type:no
     a:visited{color:black} 
     h5 {font-size:26px;}</style>`;
 
-const coverImageExists = fs.existsSync('images/cover.jpg');
+const coverImageExists = fs.existsSync(coverFileLocation);
 
 const outDirName = fileToBloomFrom.replace('.html', '') + '-bloomed';
 
-const imageFolderExists = fs.existsSync('./' + outDirName + '/images');
+const imageFolderExists = fs.existsSync(`./${outDirName}/images`);
 
 let coverImage;
 
-function answersCallback(answers) {
+function makeFileAString(file) {
+    // make a new deferred object so we can chain
+    const deferred = q.defer();
+
+    file.pipe(
+        concatStream((data) => {
+            deferred.resolve(data.toString());
+        })
+    );
+
+    return deferred.promise;
+}
+
+function answersCallback(answers: Bloomfile & { makeBloomFile?: true }) {
     global.alphabetical = answers.alphabetical;
     global.projectTitle = answers.title;
     global.projectSubtitle = answers.subtitle;
@@ -118,7 +170,7 @@ function answersCallback(answers) {
 
     global.headerMarkup = global.headerString.replace(
         '<title></title>',
-        '<title>' + answers.title + '</title>'
+        `<title>${answers.title}</title>`
     );
 
     if (answers.ftp) {
@@ -144,7 +196,7 @@ function answersCallback(answers) {
                         "Type a remote directory you'd like to bloom into (ex: html/project)"
                 }
             ])
-            .then((moreAnswers) => {
+            .then((moreAnswers: UploadOptions) => {
                 global.hostname = moreAnswers.hostname;
                 global.username = moreAnswers.username;
                 global.password = moreAnswers.password;
@@ -248,7 +300,7 @@ if (isThereABloomFile) {
                 default: true
             }
         ])
-        .then((answer) => {
+        .then((answer: { useBloomFile: boolean }) => {
             global.useBloomFile = answer.useBloomFile;
 
             if (answer.useBloomFile) {
@@ -261,22 +313,9 @@ if (isThereABloomFile) {
     askTheQuestions();
 }
 
-function makeFileAString(file) {
-    // make a new deferred object so we can chain
-    const deferred = q.defer();
-
-    file.pipe(
-        concatStream((data) => {
-            deferred.resolve(data.toString());
-        })
-    );
-
-    return deferred.promise;
-}
-
 function generateBloomFile() {
     const file = bloomfile;
-    const obj = {
+    const obj: Bloomfile = {
         title: global.projectTitle,
         author: global.projectAuthor,
         subtitle: global.projectSubtitle,
@@ -333,13 +372,13 @@ function runProgram() {
     }
 
     if (!imageFolderExists) {
-        fs.ensureDir('./' + outDirName + '/images', (err) => {
+        fs.ensureDir(`./${outDirName}/images`, (err) => {
             console.log(err);
         });
     }
 
     if (global.ssml) {
-        fs.ensureDir('./' + outDirName + '/ssml', (err) => {
+        fs.ensureDir(`./${outDirName}/ssml`, (err) => {
             console.log(err);
         });
     }
@@ -362,11 +401,11 @@ function runProgram() {
         const includeInIndex = '';
 
         if (coverImageExists) {
-            fs.createReadStream('images/cover.jpg').pipe(
-                fs.createWriteStream(outDirName + '/images/cover.jpg')
+            fs.createReadStream(coverFileLocation).pipe(
+                fs.createWriteStream(outDirName + '/' + coverFileLocation)
             );
 
-            coverImage = "<img src = 'images/cover.jpg' />";
+            coverImage = `<img src = '${coverFileLocation}' />`;
         } else {
             coverImage = '';
         }
@@ -411,9 +450,9 @@ function runProgram() {
                 }
             }
 
-            title = striptags(title); //strip tags
-            lastTitle = striptags(lastTitle);
-            nextTitle = striptags(nextTitle);
+            title = stripTags(title); //strip tags
+            lastTitle = stripTags(lastTitle);
+            nextTitle = stripTags(nextTitle);
 
             title = title.replace(new RegExp('&quot;', 'g'), '');
             lastTitle = lastTitle.replace(new RegExp('&quot;', 'g'), '');
@@ -747,7 +786,7 @@ function runProgram() {
                     .pipe(conn.dest(global.remotePath));
             }
 
-            open(outDirName + '/index.html');
+            openFile(outDirName + '/index.html');
         });
     });
 }
