@@ -1,19 +1,21 @@
 {
     "name": "bloom-cli",
-    "version": "0.4.61",
+    "version": "0.4.62",
     "description": "Export a group of sheets from Ulysses and make a website out of them!",
     "scripts": {
         "test": "mocha",
-        "start": "node cli.js"
+        "build": "tsc",
+        "run": "node dist/cli.js"
     },
     "repository": "AdamHolwerda/bloom-cli",
     "author": "Adam Holwerda",
     "license": "ISC",
     "preferGlobal": true,
     "bin": {
-        "bloom": "cli.js"
+        "bloom": "dist/cli.js"
     },
     "dependencies": {
+        "@types/node": "^13.13.0",
         "chai": "^4.2.0",
         "concat-stream": "^2.0.0",
         "curly-q": "0.0.1",
