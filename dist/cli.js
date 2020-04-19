@@ -264,6 +264,7 @@ function numberWithCommas(x) {
 fs.ensureDir('./' + outDirName, (err) => {
     console.log(err);
 });
+let jsonOut = { indexFile: { fileContents: '', projectAuthor: '' }, pages: [] };
 if (headerFileExists) {
     makeFileAString(headerFile).then((data) => {
         global.headerString = data;
@@ -321,6 +322,7 @@ function runProgram() {
             ? global.googleAnalyticsScript.replace('bloom-googleAnalyticsID', global.googleAnalyticsID)
             : '';
         for (let i = 0; i < textArray.length; i++) {
+            let pageObject = {};
             const next = i + 1;
             const last = i - 1;
             let title = i > 0 ? textArray[i].split('</h1>')[0] : 'index';
@@ -377,6 +379,8 @@ function runProgram() {
             let finalText = global.projectAuthor
                 ? textArray[i].replace('</h1>', `</h1><h3>by ${global.projectAuthor} </h3>`)
                 : textArray[i];
+            finalText = replaceQuotes(finalText);
+            finalText = typeset(finalText);
             let fileContents = commentDate +
                 backButton +
                 splitter +
@@ -385,13 +389,24 @@ function runProgram() {
                 nextButton +
                 analytics +
                 '</body></html>';
-            fileContents = replaceQuotes(fileContents);
-            fileContents = typeset(fileContents);
             const wordCount = finalText.split(' ').length;
+            pageObject.title = title;
+            pageObject.lastTitle = lastTitle;
+            pageObject.nextTitle = nextTitle;
+            pageObject.webTitle = webTitle;
+            pageObject.lastWebTitle = lastWebTitle;
+            pageObject.nextWebTitle = nextWebTitle;
+            pageObject.backButton = backButtonMarkup;
+            pageObject.nextButton = nextButtonMarkup;
+            pageObject.audioPlayer = audioMarkup;
+            pageObject.fileContents = '<h1>' + finalText;
+            pageObject.wordCount = wordCount;
             //spit out the file in this next part
             if (title !== 'index' && !hideThis && webTitle !== '') {
                 const thisHeader = global.headerString.replace('<title></title>', '<title>' + title + '</title>');
-                fs.outputFile(outDirName + '/' + webTitle + '.html', thisHeader + fileContents, (err) => {
+                const htmlFileLocation = webTitle + '.html';
+                pageObject.htmlFile = htmlFileLocation;
+                fs.outputFile(outDirName + '/' + htmlFileLocation, thisHeader + fileContents, (err) => {
                     // this is htmlencoding automatically so we don't do it here
                     if (err) {
                         console.log(err);
@@ -421,12 +436,16 @@ function runProgram() {
                     file = file.replace(new RegExp(/\.\.\./, 'g'), '?<break time = "1200ms" />');
                     file = prepend + file + append;
                     file = ssmlVal.correct(file);
-                    fs.outputFile(outDirName + '/ssml/' + webTitle + '.xml', file, (err) => {
+                    const ssmlFileLocation = 'ssml/' + webTitle + '.xml';
+                    fs.outputFile(outDirName + '/' + ssmlFileLocation, file, (err) => {
+                        pageObject.ssmlFile = ssmlFileLocation;
                         if (err) {
                             console.log(err);
                         }
                         else if (global.mp3) {
-                            fs.pathExists(outDirName + '/ssml/' + webTitle + '.mp3', (err, exists) => {
+                            const mp3FileLocation = 'ssml/' + webTitle + '.mp3';
+                            pageObject.mp3File = mp3FileLocation;
+                            fs.pathExists(outDirName + '/' + mp3FileLocation, (err, exists) => {
                                 if (err) {
                                     console.log(err);
                                 }
@@ -476,6 +495,7 @@ function runProgram() {
             if (title !== '' && title !== 'index') {
                 titleArray.push(title);
                 webTitleArray.push(webTitle);
+                jsonOut.pages.push(pageObject);
             }
         }
         if (global.alphabetical) {
@@ -534,6 +554,13 @@ function runProgram() {
             '</ul>' +
             analytics +
             '</body></html>';
+        jsonOut.indexFile.fileContents = finalFile;
+        jsonOut.indexFile.projectAuthor = global.projectAuthor;
+        fs.writeJson(outDirName + '/bloomed.json', jsonOut, { spaces: 2 }, (err) => {
+            if (err) {
+                console.log(err);
+            }
+        });
         fs.outputFile(outDirName + '/index.html', finalFile, (err) => {
             if (err) {
                 console.log(err);

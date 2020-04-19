@@ -350,6 +350,8 @@ fs.ensureDir('./' + outDirName, (err) => {
     console.log(err);
 });
 
+let jsonOut = { indexFile: { fileContents: '', projectAuthor: '' }, pages: [] };
+
 if (headerFileExists) {
     makeFileAString(headerFile).then((data) => {
         global.headerString = data;
@@ -428,6 +430,25 @@ function runProgram() {
                 : '';
 
         for (let i = 0; i < textArray.length; i++) {
+            interface PageObject {
+                title: string;
+                lastTitle: string;
+                nextTitle: string;
+                webTitle: string;
+                nextWebTitle: string;
+                lastWebTitle: string;
+                nextButton: string;
+                backButton: string;
+                audioPlayer: string;
+                fileContents: string;
+                wordCount: number;
+                ssmlFile: string;
+                mp3File: string;
+                htmlFile: string;
+            }
+
+            let pageObject = {} as PageObject;
+
             const next = i + 1;
             const last = i - 1;
 
@@ -508,6 +529,9 @@ function runProgram() {
                   )
                 : textArray[i];
 
+            finalText = replaceQuotes(finalText);
+            finalText = typeset(finalText);
+
             let fileContents =
                 commentDate +
                 backButton +
@@ -518,10 +542,19 @@ function runProgram() {
                 analytics +
                 '</body></html>';
 
-            fileContents = replaceQuotes(fileContents);
-            fileContents = typeset(fileContents);
-
             const wordCount = finalText.split(' ').length;
+
+            pageObject.title = title;
+            pageObject.lastTitle = lastTitle;
+            pageObject.nextTitle = nextTitle;
+            pageObject.webTitle = webTitle;
+            pageObject.lastWebTitle = lastWebTitle;
+            pageObject.nextWebTitle = nextWebTitle;
+            pageObject.backButton = backButtonMarkup;
+            pageObject.nextButton = nextButtonMarkup;
+            pageObject.audioPlayer = audioMarkup;
+            pageObject.fileContents = '<h1>' + finalText;
+            pageObject.wordCount = wordCount;
 
             //spit out the file in this next part
 
@@ -531,8 +564,12 @@ function runProgram() {
                     '<title>' + title + '</title>'
                 );
 
+                const htmlFileLocation = webTitle + '.html';
+
+                pageObject.htmlFile = htmlFileLocation;
+
                 fs.outputFile(
-                    outDirName + '/' + webTitle + '.html',
+                    outDirName + '/' + htmlFileLocation,
                     thisHeader + fileContents,
                     (err) => {
                         // this is htmlencoding automatically so we don't do it here
@@ -607,16 +644,24 @@ function runProgram() {
                     file = prepend + file + append;
 
                     file = ssmlVal.correct(file);
+                    const ssmlFileLocation = 'ssml/' + webTitle + '.xml';
 
                     fs.outputFile(
-                        outDirName + '/ssml/' + webTitle + '.xml',
+                        outDirName + '/' + ssmlFileLocation,
                         file,
                         (err) => {
+                            pageObject.ssmlFile = ssmlFileLocation;
+
                             if (err) {
                                 console.log(err);
                             } else if (global.mp3) {
+                                const mp3FileLocation =
+                                    'ssml/' + webTitle + '.mp3';
+
+                                pageObject.mp3File = mp3FileLocation;
+
                                 fs.pathExists(
-                                    outDirName + '/ssml/' + webTitle + '.mp3',
+                                    outDirName + '/' + mp3FileLocation,
                                     (err, exists) => {
                                         if (err) {
                                             console.log(err);
@@ -690,6 +735,7 @@ function runProgram() {
             if (title !== '' && title !== 'index') {
                 titleArray.push(title);
                 webTitleArray.push(webTitle);
+                jsonOut.pages.push(pageObject);
             }
         }
 
@@ -760,6 +806,20 @@ function runProgram() {
             '</ul>' +
             analytics +
             '</body></html>';
+
+        jsonOut.indexFile.fileContents = finalFile;
+        jsonOut.indexFile.projectAuthor = global.projectAuthor;
+
+        fs.writeJson(
+            outDirName + '/bloomed.json',
+            jsonOut,
+            { spaces: 2 },
+            (err) => {
+                if (err) {
+                    console.log(err);
+                }
+            }
+        );
 
         fs.outputFile(outDirName + '/index.html', finalFile, (err) => {
             if (err) {
