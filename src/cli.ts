@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
-const collectImages = require('./funcs/collectImages');
-const toWebTitle = require('./funcs/toWebTitle');
+const collectImages = require('../funcs/collectImages');
+const toWebTitle = require('../funcs/toWebTitle');
 
 const fs = require('fs-extra'); // get fileSystem
 const concatStream = require('concat-stream'); //put a streaming chunked file into one glob

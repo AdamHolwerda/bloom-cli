@@ -4,7 +4,8 @@
     "description": "Export a group of sheets from Ulysses and make a website out of them!",
     "scripts": {
         "test": "mocha",
-        "start": "node cli.js"
+        "build": "tsc",
+        "run": "node dist/cli.js"
     },
     "repository": "AdamHolwerda/bloom-cli",
     "author": "Adam Holwerda",
