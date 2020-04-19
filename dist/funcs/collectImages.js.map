@@ -1,0 +1,1 @@
+{"version":3,"file":"collectImages.js","sourceRoot":"","sources":["../../src/funcs/collectImages.ts"],"names":[],"mappings":"AAAA,MAAM,CAAC,OAAO,GAAG,CAAC,MAAc,EAAE,EAAE;IAChC,wDAAwD;IACxD,uCAAuC;IACvC,MAAM,MAAM,GAAG,yCAAyC,CAAC;IAEzD,MAAM,MAAM,GAAG,MAAM,CAAC,KAAK,CAAC,MAAM,CAAC,CAAC;IAEpC,OAAO,MAAM,CAAC;AAClB,CAAC,CAAC"}
