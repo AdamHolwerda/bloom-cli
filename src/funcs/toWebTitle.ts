@@ -21,6 +21,8 @@ module.exports = (str: string, contents: string) => {
         webTitle = webTitle.replace(new RegExp(/\?/, 'g'), '');
         webTitle = webTitle.replace(new RegExp('&39;', 'g'), '');
         webTitle = webTitle.replace(new RegExp('&quot;', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('“', 'g'), '');
+        webTitle = webTitle.replace(new RegExp('”', 'g'), '');
         webTitle = webTitle.replace(new RegExp('&', 'g'), 'and');
 
         return webTitle + titleHash;

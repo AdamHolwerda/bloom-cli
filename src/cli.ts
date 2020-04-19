@@ -131,7 +131,10 @@ const indexStyles = `<style>ul{margin-left:0; padding-left:0; list-style-type:no
     li {color:#aaa;} 
     a {color:#444;} 
     a:visited{color:black} 
-    h5 {font-size:26px;}</style>`;
+    h5 {font-size:26px;}
+    body {margin: 0; max-width:100%; }
+    .content {margin: 0 auto; max-width:700px; width: 80%:}
+    </style>`;
 
 const coverImageExists = fs.existsSync(coverFileLocation);
 
@@ -493,11 +496,7 @@ function runProgram() {
                 indexStr = hideThis
                     ? indexStr
                     : indexStr +
-                      '<li><a href ="' +
-                      webTitle +
-                      '".html>' +
-                      title +
-                      '</a></li>';
+                      `<li><a href ="${webTitle}.html">${title}</a></li>`;
             }
 
             const backButtonMarkup =
@@ -525,17 +524,17 @@ function runProgram() {
             let finalText = global.projectAuthor
                 ? textArray[i].replace(
                       '</h1>',
-                      `</h1><h3>by ${global.projectAuthor} </h3>`
+                      `</h1><h3>by ${global.projectAuthor}</h3>`
                   )
                 : textArray[i];
 
+            finalText = splitter + finalText;
             finalText = replaceQuotes(finalText);
             finalText = typeset(finalText);
 
             let fileContents =
                 commentDate +
                 backButton +
-                splitter +
                 audioMarkup +
                 finalText +
                 nextButton +
@@ -553,7 +552,7 @@ function runProgram() {
             pageObject.backButton = backButtonMarkup;
             pageObject.nextButton = nextButtonMarkup;
             pageObject.audioPlayer = audioMarkup;
-            pageObject.fileContents = '<h1>' + finalText;
+            pageObject.fileContents = splitter + finalText;
             pageObject.wordCount = wordCount;
 
             //spit out the file in this next part
@@ -795,7 +794,7 @@ function runProgram() {
             global.headerMarkup +
             indexStyles +
             coverImage +
-            '<h1>' +
+            '<div class="content"><h1>' +
             global.projectTitle +
             '</h1> <h2>' +
             global.projectSubtitle +
@@ -805,7 +804,7 @@ function runProgram() {
             indexStr +
             '</ul>' +
             analytics +
-            '</body></html>';
+            '</div></body></html>';
 
         jsonOut.indexFile.fileContents = finalFile;
         jsonOut.indexFile.projectAuthor = global.projectAuthor;
