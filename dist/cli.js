@@ -366,7 +366,7 @@ function runProgram() {
                 ? `<br><br><a class='button-next' href = '${nextWebTitle}.html'>next</a><br/><br/><br/><br/>`
                 : "<br><br><a class='button-next' href = 'index.html'>back</a><br><br><br/><br/>";
             const audioMarkup = global.mp3
-                ? `<audio controls src='ssml/${webTitle}.mp3' type="audio/mp3" style = 'width:100%;'><p><a href="ssml/${webTitle}.mp3"></a></p></audio><br/><br/>`
+                ? `<br/><br/><audio controls src='ssml/${webTitle}.mp3' type="audio/mp3" style = 'width:100%;'><p><a href="ssml/${webTitle}.mp3"></a></p></audio>`
                 : '';
             const backButton = title === 'index' ||
                 (lastWebTitle.indexOf('%') > -1 && global.sequentialLinks)
