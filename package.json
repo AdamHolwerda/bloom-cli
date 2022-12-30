@@ -24,14 +24,14 @@
         "inquirer": "^7.1.0",
         "jsonfile": "^6.0.1",
         "md5": "^2.2.1",
-        "mocha": "^7.1.1",
+        "mocha": "^10.2.0",
         "open": "^7.0.3",
         "q": "~1.5.1",
         "remove-markdown": "^0.3.0",
         "shelljs": "^0.8.3",
         "ssml-validator": "^0.1.0",
         "striptags": "^3.1.1",
-        "typeset": "^0.2.8",
+        "typeset": "^0.3.3",
         "vinyl-fs": "^3.0.3",
         "vinyl-ftp": "^0.6.1"
     }
